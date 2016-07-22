@@ -1,0 +1,12 @@
+bin/
+obj/
+\#*\#
+.\#*
+*~
+*.bak
+*.orig
+*.swo
+*.swp
+*.o
+*.out
+*.su
