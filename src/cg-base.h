@@ -46,6 +46,7 @@ extern libcoopgamma_crtc_info_t* crtc_info;
 extern size_t crtcs_n;
 
 
+
 /**
  * Print usage information and exit
  */
@@ -68,6 +69,9 @@ extern void usage(void);
  *               1 if `arg` was used,
  *               -1 on error
  */
+#if defined(__GNUC__)
+__attribute__((__nonnull__(1)))
+#endif
 extern int handle_opt(char* opt, char* arg);
 
 /**
@@ -81,5 +85,8 @@ extern int handle_opt(char* opt, char* arg);
  * @param   crtcs   The arguments associated with the "-c" options, `NULL`-terminated
  * @return          Zero on success, -1 on error
  */
+#if defined(__GNUC__)
+__attribute__((__nonnull__(2)))
+#endif
 extern int handle_args(int argc, char* argv[], char* method, char* site, char** crtcs);
 
