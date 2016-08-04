@@ -20,6 +20,8 @@
 
 #include "cg-base.h"
 
+#include <libclut.h>
+
 #include <alloca.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -160,7 +162,10 @@ int make_slaves(void)
     }
   
   qsort(data, n, sizeof(*data), crtc_sort_data_cmp);
+  if (n == 0)
+    return 0;
   
+  master_i = data[0].index;
   for (i = 1; i < n; i++)
     if (memcmp(data + i, data + master, sizeof(*data) - sizeof(data->index)))
       {
@@ -169,8 +174,8 @@ int make_slaves(void)
 	    crtc_updates[master_i].slaves = calloc(i - master, sizeof(size_t));
 	    if (crtc_updates[master_i].slaves == NULL)
 	      return -1;
-	    for (j = 0; master + j < i; j++)
-	      crtc_updates[master_i].slaves[j] = data[master + j].index;
+	    for (j = 1; master + j < i; j++)
+	      crtc_updates[master_i].slaves[j - 1] = data[master + j].index;
 	  }
 	master = i;
 	master_i = data[master].index;
@@ -187,8 +192,8 @@ int make_slaves(void)
       crtc_updates[master_i].slaves = calloc(i - master, sizeof(size_t));
       if (crtc_updates[master_i].slaves == NULL)
 	return -1;
-      for (j = 0; master + j < i; j++)
-	crtc_updates[master_i].slaves[j] = data[master + j].index;
+      for (j = 1; master + j < i; j++)
+	crtc_updates[master_i].slaves[j - 1] = data[master + j].index;
     }
   
   return 0;
@@ -570,7 +575,7 @@ int main(int argc, char* argv[])
 	  int at_end;
 	  opt[1] = *args++;
 	  arg = args + 1;
-	  if ((at_end = !*arg))
+	  if ((at_end = !*args))
 	    arg = argv[1];
 	  if (!strcmp(opt, "-M"))
 	    {
@@ -603,7 +608,7 @@ int main(int argc, char* argv[])
 	    switch (handle_opt(opt, arg))
 	      {
 	      case 0:
-		goto next_arg;
+		goto next_opt;
 	      case 1:
 		break;
 	      default:
@@ -611,9 +616,9 @@ int main(int argc, char* argv[])
 	      }
 	  argv += at_end;
 	  argc -= at_end;
-	  goto next_arg;
+	  break;
+	next_opt:;
 	}
-    next_arg:;
     }
   
   crtcs_n = crtcs_i;
@@ -756,6 +761,7 @@ int main(int argc, char* argv[])
 #define X(CONST, MEMBER, MAX, TYPE)\
 	case CONST:\
 	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.MEMBER));\
+	  libclut_start_over(&(crtc_updates[crtcs_i].filter.ramps.MEMBER), MAX, TYPE, 1, 1, 1);\
 	  break;
 LIST_DEPTHS
 #undef X

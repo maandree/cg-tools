@@ -51,7 +51,8 @@ typedef struct filter_update
    * `.filter.crtc`, `.filter.class`, and
    * `.filter.priority`, `.filter.depth`
    * are preconfigured, and `.filter.ramps`
-   * is preinitialised.
+   * is preinitialised and preset to an
+   * identity ramp
    */
   libcoopgamma_filter_t filter;
   

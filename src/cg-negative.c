@@ -30,7 +30,7 @@
 /**
  * The default filter priority for the program
  */
-const int64_t default_priority = ((int64_t)1) << 62;
+const int64_t default_priority = ((int64_t)1) << 63;
 
 /**
  * The default class for the program
@@ -151,13 +151,13 @@ int handle_opt(char* opt, char* arg)
 int handle_args(int argc, char* argv[], char* method, char* site,
 		char** crtcs, char* prio, char* rule)
 {
-  int q = dflag + (xflag | rplus | gplus | bplus);
+  int q = xflag + (dflag | rplus | gplus | bplus);
   q += (method != NULL) &&  !strcmp(method, "?");
   q += (prio   != NULL) &&  !strcmp(prio, "?");
-  q += (rule   != NULL) && (!strcmp(method, "?") || !strcmp(method, "??"));
+  q += (rule   != NULL) && (!strcmp(rule, "?") || !strcmp(rule, "??"));
   for (; *crtcs; crtcs++)
     q += !strcmp(*crtcs, "?");
-  if (argc || q || (dflag && (prio != NULL)))
+  if (argc || (q > 1) || (xflag && (prio != NULL)))
     usage();
 }
 
@@ -229,12 +229,14 @@ int start(void)
     }
   
   while (r != 1)
-    if ((r = update_filter(i, -1)) < 0)
+    if ((r = synchronise(-1)) < 0)
       return r;
   
   if (!dflag)
     return 0;
   
+  if (libcoopgamma_set_nonblocking(&cg, 0) < 0)
+    return -1;
   for (;;)
     if (libcoopgamma_synchronise(&cg, NULL, 0, &j) < 0)
       switch (errno)
