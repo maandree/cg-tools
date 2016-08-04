@@ -20,6 +20,55 @@
 
 
 /**
+ * Information (except asynchronous call context)
+ * required to update the gamma ramps on a CRTC.
+ */
+typedef struct filter_update
+{
+  /**
+   * The filter to update
+   * 
+   * `.filter.crtc` and `.filter.priority`
+   * are preconfigured
+   */
+  libcoopgamma_filter_t filter;
+  
+  /**
+   * Has the update been synchronised?
+   */
+  int synced;
+  
+  /**
+   * Did the update fail?
+   */
+  int failed;
+  
+  /**
+   * Error description if `.failed` is true
+   */
+  libcoopgamma_error_t error;
+  
+  /**
+   * If zero, the ramps in `.filter` shall
+   * neither be modified nor freed.
+   */
+  int master;
+  
+  /**
+   * 0-terminated list of elements in
+   * `.crtc_updates` which shares gamma
+   * ramps with this instance
+   * 
+   * This will only be set if `.master`
+   * is true.
+   */
+  size_t* slaves;
+  
+} filter_update_t;
+
+
+
+/**
  * The process's name
  */
 extern const char* argv0;
@@ -35,6 +84,11 @@ extern libcoopgamma_context_t cg;
 extern char** crtcs;
 
 /**
+ * Gamma ramp updates for each CRTC
+ */
+extern filter_update_t* crtc_updates;
+
+/**
  * CRTC and monitor information about
  * each selected CRTC and connect monitor
  */
@@ -44,6 +98,22 @@ extern libcoopgamma_crtc_info_t* crtc_info;
  * The number of selected CRTC:s
  */
 extern size_t crtcs_n;
+
+
+
+/**
+ * The default filter priority for the program
+ */
+extern const int64_t default_priority;
+
+
+
+/**
+ * Make elements in `crtc_updates` slaves where appropriate
+ * 
+ * @return  Zero on success, -1 on error
+ */
+int make_slaves(void);
 
 
 
@@ -89,4 +159,14 @@ extern int handle_opt(char* opt, char* arg);
 __attribute__((__nonnull__(2)))
 #endif
 extern int handle_args(int argc, char* argv[], char* method, char* site, char** crtcs);
+
+/**
+ * The main function for the program-specific code
+ * 
+ * @return  0: Success
+ *          -1: Error, `errno` set
+ *          -2: Error, `cg.error` set
+ *          -3: Error, message already printed
+ */
+extern int start(void);
 
