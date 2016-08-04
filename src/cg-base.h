@@ -28,8 +28,10 @@ typedef struct filter_update
   /**
    * The filter to update
    * 
-   * `.filter.crtc` and `.filter.priority`
-   * are preconfigured
+   * `.filter.crtc`, `.filter.class`, and
+   * `.filter.priority`, `.filter.depth`
+   * are preconfigured, and `.filter.ramps`
+   * is preinitialised.
    */
   libcoopgamma_filter_t filter;
   
@@ -106,6 +108,11 @@ extern size_t crtcs_n;
  */
 extern const int64_t default_priority;
 
+/**
+ * The default class for the program
+ */
+extern char* const default_class;
+
 
 
 /**
@@ -115,6 +122,36 @@ extern const int64_t default_priority;
  */
 int make_slaves(void);
 
+/**
+ * Update a filter and synchronise calls
+ * 
+ * @param   index    The index of the CRTC
+ * @param   timeout  The number of milliseconds a call to `poll` may block,
+ *                   -1 if it may block forever
+ * @return           1: Success, no pending synchronisations
+ *                   0: Success, with still pending synchronisations
+ *                   -1: Error, `errno` set
+ *                   -2: Error, `cg.error` set
+ * 
+ * @throws  EINTR   Call to `poll` was interrupted by a signal
+ * @throws  EAGAIN  Call to `poll` timed out
+ */
+int update_filter(size_t index, int timeout);
+
+/**
+ * Synchronised calls
+ * 
+ * @param   timeout  The number of milliseconds a call to `poll` may block,
+ *                   -1 if it may block forever
+ * @return           1: Success, no pending synchronisations
+ *                   0: Success, with still pending synchronisations
+ *                   -1: Error, `errno` set
+ *                   -2: Error, `cg.error` set
+ * 
+ * @throws  EINTR   Call to `poll` was interrupted by a signal
+ * @throws  EAGAIN  Call to `poll` timed out
+ */
+int synchronise(int timeout);
 
 
 /**
@@ -131,7 +168,7 @@ extern void usage(void);
  * @param   opt  The option, it is a NUL-terminate two-character
  *               string starting with either '-' or '+', if the
  *               argument is not recognised, call `usage`. This
- *               string will not be "-m", "-s", or "-c".
+ *               string will not be "-M", "-S", "-c", "-p", or "-R".
  * @param   arg  The argument associated with `opt`,
  *               `NULL` there is no next argument, if this
  *               parameter is `NULL` but needed, call `usage`
@@ -150,15 +187,18 @@ extern int handle_opt(char* opt, char* arg);
  * 
  * @param   argc    The number of unparsed arguments
  * @param   argv    `NULL` terminated list of unparsed arguments
- * @param   method  The argument associated with the "-m" option
- * @param   site    The argument associated with the "-s" option
+ * @param   method  The argument associated with the "-M" option
+ * @param   site    The argument associated with the "-S" option
  * @param   crtcs   The arguments associated with the "-c" options, `NULL`-terminated
+ * @param   prio    The argument associated with the "-p" option
+ * @param   rule    The argument associated with the "-R" option
  * @return          Zero on success, -1 on error
  */
 #if defined(__GNUC__)
 __attribute__((__nonnull__(2)))
 #endif
-extern int handle_args(int argc, char* argv[], char* method, char* site, char** crtcs);
+extern int handle_args(int argc, char* argv[], char* method, char* site, char** crtcs,
+		       char* prio, char* rule);
 
 /**
  * The main function for the program-specific code

@@ -69,14 +69,14 @@ size_t crtcs_n = 0;
 static libcoopgamma_async_context_t* asyncs = NULL;
 
 /**
- * The number of pending sends
- */
-static size_t pending_sends = 0;
-
-/**
  * The number of pending receives
  */
 static size_t pending_recvs = 0;
+
+/**
+ * Whether message must be flushed
+ */
+static int flush_pending = 0;
 
 
 
@@ -188,6 +188,132 @@ int make_slaves(void)
     }
   
   return 0;
+}
+
+
+/**
+ * Update a filter and synchronise calls
+ * 
+ * @param   index    The index of the CRTC
+ * @param   timeout  The number of milliseconds a call to `poll` may block,
+ *                   -1 if it may block forever
+ * @return           1: Success, no pending synchronisations
+ *                   0: Success, with still pending synchronisations
+ *                   -1: Error, `errno` set
+ *                   -2: Error, `cg.error` set
+ * 
+ * @throws  EINTR   Call to `poll` was interrupted by a signal
+ * @throws  EAGAIN  Call to `poll` timed out
+ */
+int update_filter(size_t index, int timeout)
+{
+  filter_update_t* filter = crtc_updates + index;
+  
+  if (!(filter->synced) || filter->failed)
+    abort();
+  
+  pending_recvs += 1;
+  
+  if (libcoopgamma_set_gamma_send(&(filter->filter), &cg, asyncs + index) < 0)
+    switch (errno)
+      {
+      case EINTR:
+      case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+      case EWOULDBLOCK:
+#endif
+	flush_pending = 1;
+	break;
+      default:
+	return -1;
+      }
+  
+  filter->synced = 0;
+  return synchronise(timeout);
+}
+
+
+/**
+ * Synchronised calls
+ * 
+ * @param   timeout  The number of milliseconds a call to `poll` may block,
+ *                   -1 if it may block forever
+ * @return           1: Success, no pending synchronisations
+ *                   0: Success, with still pending synchronisations
+ *                   -1: Error, `errno` set
+ *                   -2: Error, `cg.error` set
+ * 
+ * @throws  EINTR   Call to `poll` was interrupted by a signal
+ * @throws  EAGAIN  Call to `poll` timed out
+ */
+int synchronise(int timeout)
+{
+  struct pollfd pollfd;
+  size_t selected;
+  
+  pollfd.fd = cg.fd;
+  pollfd.events = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI;
+  if (flush_pending > 0)
+    pollfd.events |= POLLOUT;
+  
+  if (poll(&pollfd, (nfds_t)1, timeout) < 0)
+    return -1;
+  
+  if (pollfd.revents & (POLLOUT | POLLERR | POLLHUP | POLLNVAL))
+    {
+      if (libcoopgamma_flush(&cg) < 0)
+	goto sync;
+      flush_pending = 0;
+    }
+  
+  if ((timeout < 0) && (pending_recvs > 0))
+    if (!(pollfd.revents & (POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI)))
+      if (poll(&pollfd, (nfds_t)1, -1) < 0)
+	return -1;
+  
+ sync:
+  if (pollfd.revents & (POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI | POLLERR | POLLHUP | POLLNVAL))
+    for (;;)
+      {
+	if (libcoopgamma_synchronise(&cg, asyncs, crtcs_n, &selected) < 0)
+	  {
+	    if (errno == 0)
+	      continue;
+	    else
+	      goto fail;
+	  }
+	if (crtc_updates[selected].synced)
+	  continue;
+	crtc_updates[selected].synced = 1;
+	pending_recvs -= 1;
+	if (libcoopgamma_set_gamma_recv(&cg, asyncs + selected) < 0)
+	  {
+	    if (cg.error.server_side)
+	      {
+		crtc_updates[selected].error = cg.error;
+		crtc_updates[selected].failed = 1;
+		memset(&(cg.error), 0, sizeof(cg.error));
+	      }
+	    else
+	      goto cg_fail;
+	  }
+      }
+  
+  return pending_recvs == 0;
+ cg_fail:
+  return -2;
+ fail:
+  switch (errno)
+    {
+    case EINTR:
+    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+    case EWOULDBLOCK:
+#endif
+      return pending_recvs == 0;
+    default:
+      return -1;
+    }
 }
 
 
@@ -366,11 +492,11 @@ static int get_crtc_info(void)
 
 
 /**
- * -m METHOD
+ * -M METHOD
  *     Select adjustment method. If METHOD is "?",
  *     available methods will be printed to stdout.
  * 
- * -s SITE
+ * -S SITE
  *     Select site (display server instance).
  * 
  * -c CRTC
@@ -386,6 +512,13 @@ static int get_crtc_info(void)
  *     PRIORITY is "?", the default priority for the
  *     program is printed to stdout.
  * 
+ * -R RULE
+ *     The rule of the filter, that is, the last part
+ *     of the class which is its identifier. If RULE
+ *     is "?" the default rule is printed to stdout,
+ *     if RULE is "??" the default class is printed
+ *     to stdout.
+ * 
  * @param   argc  The number of command line arguments
  * @param   argv  The command line arguments
  * @return        0 on success, 1 on error
@@ -400,6 +533,8 @@ int main(int argc, char* argv[])
   size_t crtcs_i = 0;
   int64_t priority = default_priority;
   char* prio = NULL;
+  char* rule = NULL;
+  char* class = default_class;
   
   argv0 = *argv++, argc--;
   
@@ -429,12 +564,12 @@ int main(int argc, char* argv[])
 	  arg = args + 1;
 	  if ((at_end = !*arg))
 	    arg = argv[1];
-	  if (!strcmp(opt, "-m"))
+	  if (!strcmp(opt, "-M"))
 	    {
 	      if ((method != NULL) || ((method = arg) == NULL))
 		usage();
 	    }
-	  else if (!strcmp(opt, "-s"))
+	  else if (!strcmp(opt, "-S"))
 	    {
 	      if ((site != NULL) || ((site = arg) == NULL))
 		usage();
@@ -448,6 +583,11 @@ int main(int argc, char* argv[])
 	  else if (!strcmp(opt, "-p"))
 	    {
 	      if ((prio != NULL) || ((prio = arg) == NULL))
+		usage();
+	    }
+	  else if (!strcmp(opt, "-R"))
+	    {
+	      if ((rule != NULL) || ((rule = arg) == NULL))
 		usage();
 	    }
 	  else
@@ -469,7 +609,7 @@ int main(int argc, char* argv[])
   
   crtcs_n = crtcs_i;
   crtcs[crtcs_i] = NULL;
-  if (handle_args(argc, argv, method, site, crtcs) < 0)
+  if (handle_args(argc, argv, method, site, crtcs, prio, rule) < 0)
     goto fail;
   
   if ((prio != NULL) && !strcmp(prio, "?"))
@@ -479,6 +619,25 @@ int main(int argc, char* argv[])
     }
   else if (prio != NULL)
     priority = (int64_t)atoll(prio);
+  
+  if ((rule != NULL) && !strcmp(rule, "??"))
+    {
+      printf("%s\n", class);
+      return 0;
+    }
+  else if ((rule != NULL) && !strcmp(rule, "?"))
+    {
+      printf("%s\n", strstr(strstr(class, "::") + 2, "::") + 2);
+      return 0;
+    }
+  else if (rule != NULL)
+    {
+      char* p = strstr(strstr(class, "::") + 2, "::") + 2;
+      size_t n = (size_t)(p - class);
+      class = alloca(strlen(rule) + n + (size_t)1);
+      memcpy(class, default_class, n);
+      strcpy(class + n, rule);
+    }
   
   if ((method != NULL) && !strcmp(method, "?"))
     {
@@ -552,6 +711,7 @@ int main(int argc, char* argv[])
       crtc_updates[crtcs_i].master = 1;
       crtc_updates[crtcs_i].slaves = NULL;
       crtc_updates[crtcs_i].filter.crtc                = crtcs[crtcs_i];
+      crtc_updates[crtcs_i].filter.class               = class;
       crtc_updates[crtcs_i].filter.priority            = priority;
       crtc_updates[crtcs_i].filter.depth               = crtc_info[crtcs_i].depth;
       crtc_updates[crtcs_i].filter.ramps.u8.red_size   = crtc_info[crtcs_i].red_size;
@@ -622,6 +782,7 @@ int main(int argc, char* argv[])
 	if (crtc_updates[crtcs_i].master == 0)
 	  memset(&(crtc_updates[crtcs_i].filter.ramps.u8), 0, sizeof(crtc_updates[crtcs_i].filter.ramps.u8));
 	crtc_updates[crtcs_i].filter.crtc = NULL;
+	crtc_updates[crtcs_i].filter.class = NULL;
 	libcoopgamma_filter_destroy(&(crtc_updates[crtcs_i].filter));
 	libcoopgamma_error_destroy(&(crtc_updates[crtcs_i].error));
 	free(crtc_updates[crtcs_i].slaves);
