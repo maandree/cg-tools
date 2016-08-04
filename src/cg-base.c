@@ -23,6 +23,7 @@
 #include <alloca.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,12 +138,109 @@ static int list_crtcs(void)
 /**
  * Fill the list of CRTC information
  * 
- * @return  Zero on success, -1 on libcoopgamma error
+ * @return  Zero on success, -1 on error, -2
+ *          on libcoopgamma error
  */
 static int get_crtc_info(void)
 {
-  /* TODO */
+  size_t i, unsynced = 0, selected;
+  libcoopgamma_async_context_t* async;
+  char* synced;
+  int saved_errno, need_flush = 0, fail_rc = -1;
+  struct pollfd pollfd;
+  
+  async = alloca(crtcs_n * sizeof(*async));
+  synced = alloca(crtcs_n * sizeof(*synced));
+  for (i = 0; i < crtcs_n; i++)
+    if (libcoopgamma_async_context_initialise(async + i) < 0)
+      return -1;
+  memset(synced, 0, crtcs_n * sizeof(*synced));
+  
+  i = 0;
+  pollfd.fd = cg.fd;
+  pollfd.events = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI;
+  
+  for (;;)
+    {
+    wait:
+      if (i < crtcs_n)
+	pollfd.events |= POLLOUT;
+      else
+	pollfd.events &= ~POLLOUT;
+      
+      if (poll(&pollfd, (nfds_t)1, -1) < 0)
+	goto fail;
+      
+      if (pollfd.revents & (POLLOUT | POLLERR | POLLHUP | POLLNVAL))
+	{
+	  if (need_flush && (libcoopgamma_flush(&cg) < 0))
+	    goto send_fail;
+	  need_flush = 0;
+	  for (; i < crtcs_n; i++)
+	    if (unsynced++, libcoopgamma_get_gamma_info_send(crtcs[i], &cg, async + i) < 0)
+	      goto send_fail;
+	  goto send_done;
+	  send_fail:
+	  switch (errno)
+	    {
+	    case EINTR:
+	    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+	    case EWOULDBLOCK:
+#endif
+	      i++;
+	      need_flush = 1;
+	      break;
+	    default:
+	      goto fail;
+	    }
+	}
+    send_done:
+      
+      if (unsynced == 0)
+	break;
+      
+      if (pollfd.revents & (POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI))
+	while (unsynced > 0)
+	  switch (libcoopgamma_synchronise(&cg, async, i, &selected))
+	    {
+	    case 0:
+	      if (synced[selected])
+		break;
+	      synced[selected] = 1;
+	      unsynced -= 1;
+	      if (libcoopgamma_get_gamma_info_recv(crtc_info + selected, &cg, async + selected) < 0)
+		goto cg_fail;
+	      break;
+	    case -1:
+	      switch (errno)
+		{
+		case 0:
+		  break;
+		case EINTR:
+		case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+		case EWOULDBLOCK:
+#endif
+		  goto wait;
+		default:
+		  goto fail;
+		}
+	      break;
+	    }
+    }
+  
+  for (i = 0; i < crtcs_n; i++)
+    libcoopgamma_async_context_destroy(async + i);
   return 0;
+ cg_fail:
+  fail_rc = -2;
+ fail:
+  saved_errno = errno;
+  for (i = 0; i < crtcs_n; i++)
+    libcoopgamma_async_context_destroy(async + i);
+  errno = saved_errno;
+  return fail_rc;
 }
 
 
@@ -286,8 +384,18 @@ int main(int argc, char* argv[])
     if (libcoopgamma_crtc_info_initialise(crtc_info + crtcs_i) < 0)
       goto cg_fail;
   
-  if (get_crtc_info() < 0)
-    goto cg_fail;
+  if (libcoopgamma_set_nonblocking(&cg, 1) < 0)
+    goto fail;
+  
+  switch (get_crtc_info())
+    {
+    case 0:
+      break;
+    case -1:
+      goto fail;
+    case -2:
+      goto cg_fail;
+    }
   
   /* TODO start */
   
