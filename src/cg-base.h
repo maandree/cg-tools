@@ -20,6 +20,26 @@
 
 
 /**
+ * X-macro that list all gamma ramp types
+ * 
+ * X will be expanded with 4 arguments:
+ * 1)  The libcoopgamma constant that identifies the type
+ * 2)  The member in `union libcoopgamma_ramps` that
+ *     corresponds to the type
+ * 3)  The max value for the ramp stops
+ * 4)  The type of the ramp stops
+ */
+#define LIST_DEPTHS\
+  X(LIBCOOPGAMMA_UINT8,  u8,  UINT8_MAX,   uint8_t)\
+  X(LIBCOOPGAMMA_UINT16, u16, UINT16_MAX,  uint16_t)\
+  X(LIBCOOPGAMMA_UINT32, u32, UINT32_MAX,  uint32_t)\
+  X(LIBCOOPGAMMA_UINT64, u64, UINT64_MAX,  uint64_t)\
+  X(LIBCOOPGAMMA_FLOAT,  f,   ((float)1),  float)\
+  X(LIBCOOPGAMMA_DOUBLE, d,   ((double)1), double)
+
+
+
+/**
  * Information (except asynchronous call context)
  * required to update the gamma ramps on a CRTC.
  */
@@ -52,7 +72,7 @@ typedef struct filter_update
   
   /**
    * If zero, the ramps in `.filter` shall
-   * neither be modified nor freed.
+   * neither be modified nor freed
    */
   int master;
   
@@ -62,7 +82,7 @@ typedef struct filter_update
    * ramps with this instance
    * 
    * This will only be set if `.master`
-   * is true.
+   * is true
    */
   size_t* slaves;
   

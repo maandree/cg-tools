@@ -142,22 +142,26 @@ static int crtc_sort_data_cmp(const void* a_, const void* b_)
 int make_slaves(void)
 {
   struct crtc_sort_data* data;
-  size_t i, j, master = 0, master_i;
+  size_t i, j, n = 0, master = 0, master_i;
   
   data = alloca(crtcs_n * sizeof(*data));
   memset(data, 0, crtcs_n * sizeof(*data));
   for (i = 0; i < crtcs_n; i++)
     {
-      data[i].depth      = crtc_updates[i].filter.depth;
-      data[i].red_size   = crtc_updates[i].filter.ramps.u8.red_size;
-      data[i].green_size = crtc_updates[i].filter.ramps.u8.green_size;
-      data[i].blue_size  = crtc_updates[i].filter.ramps.u8.blue_size;
-      data[i].index      = i;
+      if (!(crtc_info[i].supported))
+	continue;
+      
+      data[n].depth      = crtc_updates[i].filter.depth;
+      data[n].red_size   = crtc_updates[i].filter.ramps.u8.red_size;
+      data[n].green_size = crtc_updates[i].filter.ramps.u8.green_size;
+      data[n].blue_size  = crtc_updates[i].filter.ramps.u8.blue_size;
+      data[n].index      = i;
+      n++;
     }
   
-  qsort(data, crtcs_n, sizeof(*data), crtc_sort_data_cmp);
+  qsort(data, n, sizeof(*data), crtc_sort_data_cmp);
   
-  for (i = 1; i < crtcs_n; i++)
+  for (i = 1; i < n; i++)
     if (memcmp(data + i, data + master, sizeof(*data) - sizeof(data->index)))
       {
 	if (master + 1 < i)
@@ -403,7 +407,7 @@ static int get_crtc_info(void)
 {
   size_t i, unsynced = 0, selected;
   char* synced;
-  int saved_errno, need_flush = 0, fail_rc = -1;
+  int saved_errno, need_flush = 0;
   struct pollfd pollfd;
   
   synced = alloca(crtcs_n * sizeof(*synced));
@@ -413,7 +417,7 @@ static int get_crtc_info(void)
   pollfd.fd = cg.fd;
   pollfd.events = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI;
   
-  for (;;)
+  while ((unsynced > 0) || (i < crtcs_n))
     {
     wait:
       if (i < crtcs_n)
@@ -450,7 +454,7 @@ static int get_crtc_info(void)
 	}
     send_done:
       
-      if (unsynced == 0)
+      if ((unsynced == 0) && (i == crtcs_n))
 	break;
       
       if (pollfd.revents & (POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI))
@@ -459,7 +463,10 @@ static int get_crtc_info(void)
 	    {
 	    case 0:
 	      if (synced[selected])
-		break;
+		{
+		  libcoopgamma_skip_message(&cg);
+		  break;
+		}
 	      synced[selected] = 1;
 	      unsynced -= 1;
 	      if (libcoopgamma_get_gamma_info_recv(crtc_info + selected, &cg, asyncs + selected) < 0)
@@ -484,10 +491,10 @@ static int get_crtc_info(void)
     }
   
   return 0;
- cg_fail:
-  fail_rc = -2;
  fail:
-  return fail_rc;
+  return -1;
+ cg_fail:
+  return -2;
 }
 
 
@@ -535,6 +542,7 @@ int main(int argc, char* argv[])
   char* prio = NULL;
   char* rule = NULL;
   char* class = default_class;
+  int explicit_crtcs = 0;
   
   argv0 = *argv++, argc--;
   
@@ -579,6 +587,7 @@ int main(int argc, char* argv[])
 	      if (arg == NULL)
 		usage();
 	      crtcs[crtcs_i++] = arg;
+	      explicit_crtcs = 1;
 	    }
 	  else if (!strcmp(opt, "-p"))
 	    {
@@ -637,6 +646,11 @@ int main(int argc, char* argv[])
       class = alloca(strlen(rule) + n + (size_t)1);
       memcpy(class, default_class, n);
       strcpy(class + n, rule);
+      if (strchr(class, '\n'))
+	{
+	  fprintf(stderr, "%s: LF character is not allowed in the filter's class\n", argv0);
+	  goto custom_fail;
+	}
     }
   
   if ((method != NULL) && !strcmp(method, "?"))
@@ -698,6 +712,26 @@ int main(int argc, char* argv[])
     if (libcoopgamma_async_context_initialise(asyncs + crtcs_i) < 0)
       goto fail;
   
+  switch (get_crtc_info())
+    {
+    case 0:
+      break;
+    case -1:
+      goto fail;
+    case -2:
+      goto cg_fail;
+    }
+  
+  for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
+    {
+      if (explicit_crtcs && !(crtc_info[crtcs_i].supported))
+	fprintf(stderr, "%s: warning: gamma adjustments not supported on CRTC: %s\n",
+		argv0, crtcs[crtcs_i]);
+      if (crtc_info[crtcs_i].cooperative == 0)
+	fprintf(stderr, "%s: warning: cooperative gamma server not running for CRTC: %s\n",
+		argv0, crtcs[crtcs_i]);
+    }
+  
   crtc_updates = alloca(crtcs_n * sizeof(*crtc_updates));
   memset(crtc_updates, 0, crtcs_n * sizeof(*crtc_updates));
   for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
@@ -719,38 +753,17 @@ int main(int argc, char* argv[])
       crtc_updates[crtcs_i].filter.ramps.u8.blue_size  = crtc_info[crtcs_i].blue_size;
       switch (crtc_updates[crtcs_i].filter.depth)
 	{
-	case LIBCOOPGAMMA_UINT8:
-	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.u8));
+#define X(CONST, MEMBER, MAX, TYPE)\
+	case CONST:\
+	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.MEMBER));\
 	  break;
-	case LIBCOOPGAMMA_UINT16:
-	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.u16));
-	  break;
-	case LIBCOOPGAMMA_UINT32:
-	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.u32));
-	  break;
-	case LIBCOOPGAMMA_UINT64:
-	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.u64));
-	  break;
-	case LIBCOOPGAMMA_FLOAT:
-	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.f));
-	  break;
-	case LIBCOOPGAMMA_DOUBLE:
-	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.d));
-	  break;
+LIST_DEPTHS
+#undef X
 	default:
-	  fprintf(stderr, "%s: internal error: gamma ramp type is unrecognised\n", argv0);
+	  fprintf(stderr, "%s: internal error: gamma ramp type is unrecognised: %i\n",
+		  argv0, crtc_updates[crtcs_i].filter.depth);
 	  goto custom_fail;
 	}
-    }
-  
-  switch (get_crtc_info())
-    {
-    case 0:
-      break;
-    case -1:
-      goto fail;
-    case -2:
-      goto cg_fail;
     }
   
   switch (start())
@@ -764,6 +777,28 @@ int main(int argc, char* argv[])
     case -3:
       goto custom_fail;
     }
+  
+  for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
+    if (crtc_updates[crtcs_i].failed)
+      {
+	const char* side = cg.error.server_side ? "server" : "client";
+	const char* crtc = crtc_updates[crtcs_i].filter.crtc;
+	if (cg.error.custom)
+	  {
+	    if ((cg.error.number != 0) || (cg.error.description != NULL))
+	      fprintf(stderr, "%s: %s-side error number %" PRIu64 " for CRTC %s: %s\n",
+		      argv0, side, cg.error.number, crtc, cg.error.description);
+	    else if (cg.error.number != 0)
+	      fprintf(stderr, "%s: %s-side error number %" PRIu64 " for CRTC %s\n",
+		      argv0, side, cg.error.number, crtc);
+	    else if (cg.error.description != NULL)
+	      fprintf(stderr, "%s: %s-side error for CRTC %s: %s\n", argv0, side, crtc, cg.error.description);
+	  }
+	else if (cg.error.description != NULL)
+	  fprintf(stderr, "%s: %s-side error for CRTC %s: %s\n", argv0, side, crtc, cg.error.description);
+	else
+	  fprintf(stderr, "%s: %s-side error for CRTC %s: %s\n", argv0, side, crtc, strerror(cg.error.number));
+      }
   
  done:
   if (dealloc_crtcs)
