@@ -180,7 +180,7 @@ static int get_crtc_info(void)
 	    if (unsynced++, libcoopgamma_get_gamma_info_send(crtcs[i], &cg, async + i) < 0)
 	      goto send_fail;
 	  goto send_done;
-	  send_fail:
+	send_fail:
 	  switch (errno)
 	    {
 	    case EINTR:
