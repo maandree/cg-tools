@@ -30,7 +30,7 @@
 /**
  * The default filter priority for the program
  */
-const int64_t default_priority = ((int64_t)1) << 63;
+const int64_t default_priority = ((int64_t)1) << 62;
 
 /**
  * The default class for the program
