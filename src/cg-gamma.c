@@ -77,7 +77,7 @@ static double bgamma = 1;
 
 /**
  * `NULL`-terminated list of output
- * names list in the configuration file
+ * names listed in the configuration file
  */
 static char** names = NULL;
 
