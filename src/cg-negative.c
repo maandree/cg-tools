@@ -159,6 +159,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
     q += !strcmp(*crtcs, "?");
   if (argc || (q > 1) || (xflag && (prio != NULL)))
     usage();
+  return 0;
 }
 
 
