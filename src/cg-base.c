@@ -265,6 +265,7 @@ int synchronise(int timeout)
   if (flush_pending > 0)
     pollfd.events |= POLLOUT;
   
+  pollfd.revents = 0;
   if (poll(&pollfd, (nfds_t)1, timeout) < 0)
     return -1;
   
@@ -277,8 +278,11 @@ int synchronise(int timeout)
   
   if ((timeout < 0) && (pending_recvs > 0))
     if (!(pollfd.revents & (POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI)))
-      if (poll(&pollfd, (nfds_t)1, -1) < 0)
-	return -1;
+      {
+	pollfd.revents = 0;
+	if (poll(&pollfd, (nfds_t)1, -1) < 0)
+	  return -1;
+      }
   
  sync:
   if (pollfd.revents & (POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI | POLLERR | POLLHUP | POLLNVAL))
@@ -430,6 +434,7 @@ static int get_crtc_info(void)
       else
 	pollfd.events &= ~POLLOUT;
       
+      pollfd.revents = 0;
       if (poll(&pollfd, (nfds_t)1, -1) < 0)
 	goto fail;
       
