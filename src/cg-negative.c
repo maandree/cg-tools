@@ -166,7 +166,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
 /**
  * Fill a filter
  * 
- * @param  The filter to fill
+ * @param  filter  The filter to fill
  */
 static void fill_filter(libcoopgamma_filter_t* restrict filter)
 {

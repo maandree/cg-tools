@@ -168,8 +168,8 @@ int handle_args(int argc, char* argv[], char* method, char* site,
 /**
  * Fill a filter
  * 
- * @param   The filter to fill
- * @return  Zero on success, -1 on error
+ * @param   filter  The filter to fill
+ * @return          Zero on success, -1 on error
  */
 static int fill_filter(libcoopgamma_filter_t* restrict filter)
 {
