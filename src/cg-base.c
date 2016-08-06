@@ -579,8 +579,8 @@ int main(int argc, char* argv[])
 	  char* arg;
 	  int at_end;
 	  opt[1] = *args++;
-	  arg = args + 1;
-	  if ((at_end = !*args))
+	  arg = args;
+	  if ((at_end = !*arg))
 	    arg = argv[1];
 	  if (!strcmp(opt, "-M"))
 	    {
