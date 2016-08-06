@@ -37,9 +37,14 @@
 static libcoopgamma_context_t cg;
 
 /**
- * The name of the selected CRTC
+ * Filter query
  */
-static char* crtc = NULL;
+static libcoopgamma_filter_query_t query;
+
+/**
+ * The class of the filter to print
+ */
+static char* class = NULL;
 
 
 
@@ -49,7 +54,7 @@ static char* crtc = NULL;
 void usage(void)
 {
   fprintf(stderr,
-	  "Usage: %s [-M method] [-S site] -c crtc\n",
+	  "Usage: %s [-M method] [-S site] [-h high] [-l low] [-f class] -c crtc\n",
 	  argv0);
   exit(1);
 }
@@ -136,18 +141,29 @@ static int list_crtcs(void)
  * the selected CRTC
  * 
  * @return  Zero on success, -1 on error, -2
- *          on libcoopgamma error
+ *          on libcoopgamma error, -3 on error
+ *          with error message already printed
  */
 static int print_info(void)
 {
   libcoopgamma_crtc_info_t info;
+  libcoopgamma_filter_table_t table;
   char* str;
-  int saved_errno;
+  int saved_errno, ret = 0;
+  size_t i;
   
-  libcoopgamma_crtc_info_initialise(&info);
+  if (libcoopgamma_crtc_info_initialise(&info) < 0)
+    return -1;
+  if (libcoopgamma_filter_table_initialise(&table) < 0)
+    {
+      saved_errno = errno;
+      libcoopgamma_crtc_info_destroy(&info);
+      errno = saved_errno;
+      return -1;
+    }
   
-  if (libcoopgamma_get_gamma_info_sync(crtc, &info, &cg) < 0)
-    goto cg_fail;;
+  if (libcoopgamma_get_gamma_info_sync(query.crtc, &info, &cg) < 0)
+    goto cg_fail;
   
   printf("Cooperative gamma server running: %s\n",
 	 info.cooperative ? "yes" : "no");
@@ -189,27 +205,139 @@ static int print_info(void)
   
   if (info.have_gamut)
     {
-      printf("Monitor's red colour (x, y): %lf, %lf\n",
+      printf("Monitor's red colour (x y): %lf, %lf\n",
 	     info.red_x / (double)1024, info.red_y / (double)1024);
       
-      printf("Monitor's green colour (x, y): %lf, %lf\n",
+      printf("Monitor's green colour (x y): %lf, %lf\n",
 	     info.green_x / (double)1024, info.green_y / (double)1024);
       
-      printf("Monitor's blue colour (x, y): %lf, %lf\n",
+      printf("Monitor's blue colour (x y): %lf, %lf\n",
 	     info.blue_x / (double)1024, info.blue_y / (double)1024);
     }
   
-  return 0;
+  if (libcoopgamma_get_gamma_sync(&query, &table, &cg) < 0)
+    goto cg_fail;
+  
+  if ((table.red_size != info.red_size) || (table.green_size != info.green_size) ||
+      (table.blue_size != info.blue_size) || (table.depth != info.depth))
+    {
+      fprintf(stderr, "%s: gamma ramp structure changed between queries\n", argv0);
+      goto custom_fail;
+    }
+  
+  printf("Filters: %zu\n", table.filter_count);
+  for (i = 0; i < table.filter_count; i++)
+    {
+      printf("  Filter %zu:\n", i);
+      printf("    Priority: %" PRIi64 "\n", table.filters[i].priority);
+      printf("    Class: %s\n", table.filters[i].class);
+    }
+  
+ done:
+  saved_errno = errno;
+  libcoopgamma_crtc_info_destroy(&info);
+  libcoopgamma_filter_table_destroy(&table);
+  errno = saved_errno;
+  return ret;
  fail:
-  saved_errno = errno;
-  libcoopgamma_crtc_info_destroy(&info);
-  errno = saved_errno;
-  return -1;
+  ret = -1;
+  goto done;
  cg_fail:
+  ret = -2;
+  goto done;
+ custom_fail:
+  ret = -3;
+  goto done;
+}
+
+
+
+/**
+ * Print, to stdout, the ramps of the select
+ * filter on the select CRTC
+ * 
+ * @return  Zero on success, -1 on error, -2
+ *          on libcoopgamma error, -3 on error
+ *          with error message already printed
+ */
+static int print_filter(void)
+{
+  libcoopgamma_filter_table_t table;
+  libcoopgamma_ramps_t* restrict ramps;
+  int saved_errno, ret = 0;
+  size_t i, n;
+  
+  if (libcoopgamma_filter_table_initialise(&table) < 0)
+    return -1;
+  
+  if (libcoopgamma_get_gamma_sync(&query, &table, &cg) < 0)
+    goto cg_fail;
+  
+  if (query.coalesce)
+    i = 0;
+  else
+    for (i = 0; i < table.filter_count; i++)
+      if (!strcmp(table.filters[i].class, class))
+	break;
+  if (i == table.filter_count)
+    {
+      fprintf(stderr, "%s: selected filter does not exist on selected CRTC\n", argv0);
+      goto custom_fail;
+    }
+  ramps = &(table.filters[i].ramps);
+  
+  n = table.red_size;
+  if (n < table.green_size)
+    n = table.green_size;
+  if (n < table.blue_size)
+    n = table.blue_size;
+  
+  switch (table.depth)
+    {
+#define X(CONST, MEMBER, TYPE, FORMAT, DASH)				\
+    case CONST:								\
+      for (i = 0; i < n; i++)						\
+	{								\
+	  if (i < ramps->MEMBER.red_size)				\
+	    printf("%" FORMAT " ", (TYPE)(ramps->MEMBER.red[i]));	\
+	  else								\
+	    printf(DASH " ");						\
+	  if (i < ramps->MEMBER.green_size)				\
+	    printf("%" FORMAT " ", (TYPE)(ramps->MEMBER.green[i]));	\
+	  else								\
+	    printf(DASH " ");						\
+	  if (i < ramps->MEMBER.blue_size)				\
+	    printf("%" FORMAT "\n", (TYPE)(ramps->MEMBER.blue[i]));	\
+	  else								\
+	    printf(DASH "\n");						\
+	}								\
+      break
+    X(LIBCOOPGAMMA_DOUBLE, d,   double,   "lf",         "----");
+    X(LIBCOOPGAMMA_FLOAT,  f,   double,   "lf",         "----");
+    X(LIBCOOPGAMMA_UINT8,  u8,  uint8_t,  "02"  PRIx8,  "--");
+    X(LIBCOOPGAMMA_UINT16, u16, uint16_t, "04"  PRIx16, "----");
+    X(LIBCOOPGAMMA_UINT32, u32, uint32_t, "08"  PRIx32, "--------");
+    X(LIBCOOPGAMMA_UINT64, u64, uint64_t, "016" PRIx64, "----------------");
+#undef X
+    default:
+      errno = EPROTO;
+      goto fail;
+    }
+  
+ done:
   saved_errno = errno;
-  libcoopgamma_crtc_info_destroy(&info);
+  libcoopgamma_filter_table_destroy(&table);
   errno = saved_errno;
-  return -2;
+  return ret;
+ fail:
+  ret = -1;
+  goto done;
+ cg_fail:
+  ret = -2;
+  goto done;
+ custom_fail:
+  ret = -3;
+  goto done;
 }
 
 
@@ -225,16 +353,32 @@ static int print_info(void)
  *     Select CRT controller. If CRTC is "?", CRTC:s
  *     will be printed to stdout.
  * 
+ * -h HIGH
+ *     Suppress filter with higher priority than HIGH.
+ * 
+ * -l LOW
+ *     Suppress filter with lower priority than LOW.
+ * 
+ * -f CLASS
+ *     Print gamma ramps of the filter with class CLASS
+ *     on the selected CRTC. If CLASS is "*" all filters
+ *     with a priority in [LOW, HIGH] are coalesced.
+ * 
  * @param   argc  The number of command line arguments
  * @param   argv  The command line arguments
  * @return        0 on success, 1 on error
  */
 int main(int argc, char* argv[])
 {
-  int stage = 0;
+  int stage = 0, haveh = 0, havel = 0;
   int rc = 0;
   char* method = NULL;
   char* site = NULL;
+  
+  query.high_priority = INT64_MAX;
+  query.low_priority = INT64_MIN;
+  query.crtc = NULL;
+  query.coalesce = 0;
   
   ARGBEGIN
     {
@@ -249,9 +393,26 @@ int main(int argc, char* argv[])
       site = EARGF(usage());
       break;
     case 'c':
-      if (crtc != NULL)
+      if (query.crtc != NULL)
 	usage();
-      crtc = EARGF(usage());
+      query.crtc = EARGF(usage());
+      break;
+    case 'h':
+      if (haveh++)
+	usage();
+      query.high_priority = (int64_t)atoll(EARGF(usage()));
+      break;
+    case 'l':
+      if (havel++)
+	usage();
+      query.low_priority = (int64_t)atoll(EARGF(usage()));
+      break;
+    case 'f':
+      if (class != NULL)
+	usage();
+      class = EARGF(usage());
+      if ((class[0] == '*') && (class[1] == '\0'))
+	query.coalesce = 1;
       break;
     }
   ARGEND;
@@ -261,7 +422,7 @@ int main(int argc, char* argv[])
   
   if ((method != NULL) && !strcmp(method, "?"))
     {
-      if ((site != NULL) || (crtc != NULL))
+      if ((site != NULL) || (query.crtc != NULL))
 	usage();
       if (list_methods() < 0)
 	goto fail;
@@ -278,10 +439,10 @@ int main(int argc, char* argv[])
     }
   stage++;
   
-  if (!crtc)
+  if (!(query.crtc))
     usage();
   
-  if (!strcmp(crtc, "?"))
+  if (!strcmp(query.crtc, "?"))
     switch (list_crtcs())
       {
       case 0:
@@ -292,14 +453,16 @@ int main(int argc, char* argv[])
 	goto cg_fail;
       }
   
-  switch (print_info())
+  switch (class ? print_filter() : print_info())
     {
     case 0:
       goto done;
     case -1:
       goto fail;
-    default:
+    case -2:
       goto cg_fail;
+    default:
+      goto custom_fail;
     }
   
   fflush(stdout);
