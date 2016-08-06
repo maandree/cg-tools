@@ -189,13 +189,13 @@ static int print_info(void)
   
   if (info.have_gamut)
     {
-      printf("Monitor's red colour: %lf, %lf\n",
+      printf("Monitor's red colour (x, y): %lf, %lf\n",
 	     info.red_x / (double)1024, info.red_y / (double)1024);
       
-      printf("Monitor's green colour: %lf, %lf\n",
+      printf("Monitor's green colour (x, y): %lf, %lf\n",
 	     info.green_x / (double)1024, info.green_y / (double)1024);
       
-      printf("Monitor's blue colour: %lf, %lf\n",
+      printf("Monitor's blue colour (x, y): %lf, %lf\n",
 	     info.blue_x / (double)1024, info.blue_y / (double)1024);
     }
   
