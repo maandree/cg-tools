@@ -417,6 +417,9 @@ int main(int argc, char* argv[])
     }
   ARGEND;
   
+  if (argc)
+    usage();
+  
   if (initialise_proc() < 0)
     goto fail;
   
