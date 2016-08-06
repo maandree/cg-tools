@@ -388,13 +388,13 @@ int handle_args(int argc, char* argv[], char* method, char* site,
 		char** crtcs, char* prio, char* rule)
 {
   int free_fflag = 0, saved_errno;
-  int q = xflag + dflag + (fflag && argc);
+  int q = xflag + dflag;
   q += (method != NULL) &&  !strcmp(method, "?");
   q += (prio   != NULL) &&  !strcmp(prio, "?");
   q += (rule   != NULL) && (!strcmp(rule, "?") || !strcmp(rule, "??"));
   for (; *crtcs; crtcs++)
     q += !strcmp(*crtcs, "?");
-  if ((q > 1) || (xflag && ((fflag != NULL) || (argc > 0) || (prio != NULL))))
+  if ((q > 1) || (fflag && argc) || (xflag && ((fflag != NULL) || (argc > 0) || (prio != NULL))))
     usage();
   if (argc == 1)
     {
