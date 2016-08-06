@@ -199,6 +199,12 @@ LIST_DEPTHS
 }
 
 
+/**
+ * Get the current monotonic time as a double
+ * 
+ * @param   now  Output parameter for the current time (monotonic)
+ * @return       Zero on success, -1 on error
+ */
 static int double_time(double* restrict now)
 {
 #ifndef CLOCK_MONOTONIC_RAW
