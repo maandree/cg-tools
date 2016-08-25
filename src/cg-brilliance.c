@@ -73,7 +73,7 @@ void usage(void)
 {
   fprintf(stderr,
 	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] "
-	  "(-d | [-p priority] [-x] (all | red green blue))\n",
+	  "(-x | [-p priority] [-d] (all | red green blue))\n",
 	  argv0);
   exit(1);
 }

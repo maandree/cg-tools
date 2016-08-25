@@ -72,7 +72,7 @@ static int bplus = 0;
 void usage(void)
 {
   fprintf(stderr,
-	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] (-d | [-p priority] [-x] [+rgb])\n",
+	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] (-x | [-p priority] [-d] [+rgb])\n",
 	  argv0);
   exit(1);
 }
