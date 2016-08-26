@@ -134,6 +134,12 @@ int handle_args(int argc, char* argv[], char* method, char* site,
 }
 
 
+/**
+ * Read an unsigned 64-bit integer
+ * 
+ * @param   content  The beginning of the encoded integer
+ * @return           The integer, decoded
+ */
 uint64_t icc_uint64(const char* restrict content)
 {
   uint64_t rc;
@@ -149,6 +155,12 @@ uint64_t icc_uint64(const char* restrict content)
 }
 
 
+/**
+ * Read an unsigned 32-bit integer
+ * 
+ * @param   content  The beginning of the encoded integer
+ * @return           The integer, decoded
+ */
 uint32_t icc_uint32(const char* restrict content)
 {
   uint32_t rc;
@@ -160,6 +172,12 @@ uint32_t icc_uint32(const char* restrict content)
 }
 
 
+/**
+ * Read an unsigned 16-bit integer
+ * 
+ * @param   content  The beginning of the encoded integer
+ * @return           The integer, decoded
+ */
 uint16_t icc_uint16(const char* restrict content)
 {
   uint16_t rc;
@@ -169,12 +187,25 @@ uint16_t icc_uint16(const char* restrict content)
 }
 
 
+/**
+ * Read an unsigned 8-bit integer
+ * 
+ * @param   content  The beginning of the encoded integer
+ * @return           The integer, decoded
+ */
 uint16_t icc_uint8(const char* restrict content)
 {
   return (uint8_t)(content[0])
 }
 
 
+/**
+ * Read a floating-point value
+ * 
+ * @param   content  The beginning of the encoded value
+ * @param   width    The number of bytes with which the value is encoded
+ * @return           The value, decoded
+ */
 double icc_double(const char* restrict content, size_t width)
 {
   double ret = 0;
