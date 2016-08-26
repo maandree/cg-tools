@@ -134,6 +134,21 @@ int handle_args(int argc, char* argv[], char* method, char* site,
 }
 
 
+uint64_t icc_uint64(const char* restrict content)
+{
+  uint64_t rc;
+  rc  = (uint64_t)(unsigned char)(content[0]), rc <<= 8;
+  rc |= (uint64_t)(unsigned char)(content[1]), rc <<= 8;
+  rc |= (uint64_t)(unsigned char)(content[2]), rc <<= 8;
+  rc |= (uint64_t)(unsigned char)(content[3]), rc <<= 8;
+  rc |= (uint64_t)(unsigned char)(content[4]), rc <<= 8;
+  rc |= (uint64_t)(unsigned char)(content[5]), rc <<= 8;
+  rc |= (uint64_t)(unsigned char)(content[6]), rc <<= 8;
+  rc |= (uint64_t)(unsigned char)(content[7]);
+  return rc;
+}
+
+
 uint32_t icc_uint32(const char* restrict content)
 {
   uint32_t rc;
@@ -154,8 +169,27 @@ uint16_t icc_uint16(const char* restrict content)
 }
 
 
-int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* restrict ramps,
-	      signed* restrict depth)
+uint16_t icc_uint8(const char* restrict content)
+{
+  return (uint8_t)(content[0])
+}
+
+
+double icc_double(const char* restrict content, size_t width)
+{
+  double ret = 0;
+  size_t i;
+  for (i = 0; i < width; i++)
+    {
+      ret /= 256;
+      ret += (double)(unsigned char)(content[width - 1 - i]);
+    }
+  ret /= 255;
+  return ret
+}
+
+
+int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* ramps, signed* depth)
 {
   uint32_t i_tag, n_tags;
   size_t i, ptr = 0, xptr;
@@ -195,21 +229,21 @@ int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* rest
 	  
 	  /* Initialise ramps */
 	  *depth = LIBCOOPGAMMA_UINT16;
-	  ramps.u16.red_size   = 256;
-	  ramps.u16.green_size = 256;
-	  ramps.u16.blue_size  = 256;
-	  if (libcoopgamma_ramps_initialise(&(ramps.u16)) < 0)
+	  ramps->u16.red_size   = 256;
+	  ramps->u16.green_size = 256;
+	  ramps->u16.blue_size  = 256;
+	  if (libcoopgamma_ramps_initialise(&(ramps->u16)) < 0)
 	    return -1;
 	  
 	  /* Get the lookup table */
 	  if (n - ptr < 3 * 256 * 2)
 	    continue;
 	  for (i = 0; i < 256; i++)
-	    ramps.u16.red[i]   = icc_uint16(content + ptr), ptr += 2;
+	    ramps->u16.red[i]   = icc_uint16(content + ptr), ptr += 2;
 	  for (i = 0; i < 256; i++)
-	    ramps.u16.green[i] = icc_uint16(content + ptr), ptr += 2;
+	    ramps->u16.green[i] = icc_uint16(content + ptr), ptr += 2;
 	  for (i = 0; i < 256; i++)
-	    ramps.u16.blue[i]  = icc_uint16(content + ptr), ptr += 2;
+	    ramps->u16.blue[i]  = icc_uint16(content + ptr), ptr += 2;
 	  
 	  return 0;
 	}
@@ -241,16 +275,104 @@ int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* rest
 	      uint16_t n_channels, n_entries, entry_size;
 	      
 	      /* Get metadata */
+	      if (n - ptr < 3 * 4)
+		continue;
 	      n_channels = icc_uint32(content + ptr), ptr += 4;
 	      n_entries  = icc_uint32(content + ptr), ptr += 4;
 	      entry_size = icc_uint32(content + ptr), ptr += 4;
-	      if (tag_size == 1584:)
+	      if (tag_size == 1584)
 		n_channels = 3, n_entries = 256, entry_size = 2;
 	      if (n_channels != 3)
 		/* Assuming sRGB, can only be an correct assumption if there are exactly three channels */
 		continue;
 	      
-	      /* TODO */
+	      /* Check data availability */
+	      if (n_channels > SIZE_MAX / n_entries)
+		continue;
+	      if (entry_size > SIZE_MAX / (n_entries * n_channels))
+		continue;
+	      if (n - ptr < (size_t)n_channels * (size_t)n_entries * (size_t)entry_size)
+		continue;
+	      
+	      /* Initialise ramps */
+	      ramps->u8.red_size   = (size_t)n_entries;
+	      ramps->u8.green_size = (size_t)n_entries;
+	      ramps->u8.blue_size  = (size_t)n_entries;
+	      switch (entry_size)
+		{
+		case 1:
+		  *depth = LIBCOOPGAMMA_UINT8;
+		  if (libcoopgamma_ramps_initialise(&(ramps->u8)) < 0)
+		    return -1;
+		  break;
+		case 2:
+		  *depth = LIBCOOPGAMMA_UINT16;
+		  if (libcoopgamma_ramps_initialise(&(ramps->u16)) < 0)
+		    return -1;
+		  break;
+		case 4:
+		  *depth = LIBCOOPGAMMA_UINT32;
+		  if (libcoopgamma_ramps_initialise(&(ramps->u32)) < 0)
+		    return -1;
+		  break;
+		case 8:
+		  *depth = LIBCOOPGAMMA_UINT64;
+		  if (libcoopgamma_ramps_initialise(&(ramps->u64)) < 0)
+		    return -1;
+		  break;
+		default:
+		  *depth = LIBCOOPGAMMA_DOUBLE;
+		  if (libcoopgamma_ramps_initialise(&(ramps->d)) < 0)
+		    return -1;
+		  break;
+		}
+	      
+	      /* Get the lookup table */
+	      switch (*depth)
+		{
+		case LIBCOOPGAMMA_UINT8:
+		  for (i = 0; i < ramps->u8.red_size;   i++)
+		    ramps->u8.red[i]   = icc_uint8(content + ptr), ptr += 1;
+		  for (i = 0; i < ramps->u8.green_size; i++)
+		    ramps->u8.green[i] = icc_uint8(content + ptr), ptr += 1;
+		  for (i = 0; i < ramps->u8.blue_size;  i++)
+		    ramps->u8.blue[i]  = icc_uint8(content + ptr), ptr += 1;
+		  break;
+		case LIBCOOPGAMMA_UINT16:
+		  for (i = 0; i < ramps->u16.red_size;   i++)
+		    ramps->u16.red[i]   = icc_uint16(content + ptr), ptr += 2;
+		  for (i = 0; i < ramps->u16.green_size; i++)
+		    ramps->u16.green[i] = icc_uint16(content + ptr), ptr += 2;
+		  for (i = 0; i < ramps->u16.blue_size;  i++)
+		    ramps->u16.blue[i]  = icc_uint16(content + ptr), ptr += 2;
+		  break;
+		case LIBCOOPGAMMA_UINT32:
+		  for (i = 0; i < ramps->u32.red_size;   i++)
+		    ramps->u32.red[i]   = icc_uint32(content + ptr), ptr += 4;
+		  for (i = 0; i < ramps->u32.green_size; i++)
+		    ramps->u32.green[i] = icc_uint32(content + ptr), ptr += 4;
+		  for (i = 0; i < ramps->u32.blue_size;  i++)
+		    ramps->u32.blue[i]  = icc_uint32(content + ptr), ptr += 4;
+		  break;
+		case LIBCOOPGAMMA_UINT64:
+		  for (i = 0; i < ramps->u64.red_size;   i++)
+		    ramps->u64.red[i]   = icc_uint64(content + ptr), ptr += 8;
+		  for (i = 0; i < ramps->u64.green_size; i++)
+		    ramps->u64.green[i] = icc_uint64(content + ptr), ptr += 8;
+		  for (i = 0; i < ramps->u64.blue_size;  i++)
+		    ramps->u64.blue[i]  = icc_uint64(content + ptr), ptr += 8;
+		  break;
+		default:
+		  for (i = 0; i < ramps->d.red_size;   i++)
+		    ramps->d.red[i]   = icc_double(content + ptr, entry_size), ptr += entry_size;
+		  for (i = 0; i < ramps->d.green_size; i++)
+		    ramps->d.green[i] = icc_double(content + ptr, entry_size), ptr += entry_size;
+		  for (i = 0; i < ramps->d.blue_size;  i++)
+		    ramps->d.blue[i]  = icc_double(content + ptr, entry_size), ptr += entry_size;
+		  break;
+		}
+	      
+	      return 0;
 	    }
 	  else if (gamma_type == 1)
 	    {
@@ -258,6 +380,8 @@ int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* rest
 	      double r_gamma, r_min, r_max, g_gamma, g_min, g_max, b_gamma, b_min, b_max;
 	      
 	      /* Get the gamma, brightness and contrast */
+	      if (n - ptr < 9 * 4)
+		continue;
 	      r_gamma = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
 	      r_min   = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
 	      r_max   = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
@@ -270,13 +394,13 @@ int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* rest
 	      
 	      /* Initialise ramps */
 	      *depth = LIBCOOPGAMMA_DOUBLE;
-	      if (libcoopgamma_ramps_initialise(&(ramps.d)) < 0)
+	      if (libcoopgamma_ramps_initialise(&(ramps->d)) < 0)
 		return -1;
 	      
 	      /* Set ramps */
-	      libclut_start_over(&(ramps.d), (double)1, double, 1, 1, 1);
-	      libclut_gamma(&(ramps.d), (double)1, double, r_gamma, g_gamma, b_gamma);
-	      libclut_rgb_limits(&(ramps.d), (double)1, double, r_min, r_max, g_min, g_max, b_min, b_max);
+	      libclut_start_over(&(ramps->d), (double)1, double, 1, 1, 1);
+	      libclut_gamma(&(ramps->d), (double)1, double, r_gamma, g_gamma, b_gamma);
+	      libclut_rgb_limits(&(ramps->d), (double)1, double, r_min, r_max, g_min, g_max, b_min, b_max);
 	      
 	      return 0;
 	    }
