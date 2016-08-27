@@ -140,7 +140,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
  * @param   content  The beginning of the encoded integer
  * @return           The integer, decoded
  */
-uint64_t icc_uint64(const char* restrict content)
+static uint64_t icc_uint64(const char* restrict content)
 {
   uint64_t rc;
   rc  = (uint64_t)(unsigned char)(content[0]), rc <<= 8;
@@ -161,7 +161,7 @@ uint64_t icc_uint64(const char* restrict content)
  * @param   content  The beginning of the encoded integer
  * @return           The integer, decoded
  */
-uint32_t icc_uint32(const char* restrict content)
+static uint32_t icc_uint32(const char* restrict content)
 {
   uint32_t rc;
   rc  = (uint32_t)(unsigned char)(content[0]), rc <<= 8;
@@ -178,7 +178,7 @@ uint32_t icc_uint32(const char* restrict content)
  * @param   content  The beginning of the encoded integer
  * @return           The integer, decoded
  */
-uint16_t icc_uint16(const char* restrict content)
+static uint16_t icc_uint16(const char* restrict content)
 {
   uint16_t rc;
   rc  = (uint16_t)(unsigned char)(content[0]), rc <<= 8;
@@ -193,7 +193,7 @@ uint16_t icc_uint16(const char* restrict content)
  * @param   content  The beginning of the encoded integer
  * @return           The integer, decoded
  */
-uint16_t icc_uint8(const char* restrict content)
+static uint16_t icc_uint8(const char* restrict content)
 {
   return (uint8_t)(content[0])
 }
@@ -206,7 +206,7 @@ uint16_t icc_uint8(const char* restrict content)
  * @param   width    The number of bytes with which the value is encoded
  * @return           The value, decoded
  */
-double icc_double(const char* restrict content, size_t width)
+static double icc_double(const char* restrict content, size_t width)
 {
   double ret = 0;
   size_t i;
@@ -220,7 +220,7 @@ double icc_double(const char* restrict content, size_t width)
 }
 
 
-int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* ramps, signed* depth)
+static int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* ramps, signed* depth)
 {
   uint32_t i_tag, n_tags;
   size_t i, ptr = 0, xptr;
