@@ -50,6 +50,13 @@ char* const default_class = PKGNAME "::cg-icc::standard";
 
 
 /**
+ * The panhame of the selected ICC profile
+ */
+static const char* icc_filepath = NULL;
+
+
+
+/**
  * Print usage information and exit
  */
 void usage(void)
@@ -121,9 +128,9 @@ int handle_args(int argc, char* argv[], char* method, char* site,
   q += (rule   != NULL) && (!strcmp(rule, "?") || !strcmp(rule, "??"));
   for (; *crtcs; crtcs++)
     q += !strcmp(*crtcs, "?");
-  if ((q > 1) || (xflag && ((argc > 0) || (prio != NULL))))
+  if ((q > 1) || (xflag && ((argc > 0) || (prio != NULL))) || (argc > 1))
     usage();
-  /* TODO */
+  icc_filepath = *argv;
   return 0;
  fail:
   saved_errno = errno;
