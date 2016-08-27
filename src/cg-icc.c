@@ -220,7 +220,20 @@ static double icc_double(const char* restrict content, size_t width)
 }
 
 
-static int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* ramps, signed* depth)
+/**
+ * Parse an ICC profile
+ * 
+ * @param   content  The content of the ICC profile file
+ * @param   n        The byte-size of `content`
+ * @param   ramps    Output parameter for the filter stored in the ICC profile,
+ *                   `.red_size`, `.green_size`, `.blue_size` should already be
+ *                   set (these values can however be modified.)
+ * @param   depth    Output parameter for ramps stop value type
+ * @return           Zero on success, -1 on error, -2 if no usable data is
+ *                   available in the profile.
+ */
+static int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_t* ramps,
+		     libcoopgamma_depth_t* depth)
 {
   uint32_t i_tag, n_tags;
   size_t i, ptr = 0, xptr;
