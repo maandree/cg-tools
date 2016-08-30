@@ -449,7 +449,7 @@ static void fill_filter(libcoopgamma_filter_t* restrict filter, double r, double
     {
 #define X(CONST, MEMBER, MAX, TYPE)\
     case CONST:\
-       libclut_gamma(&(filter->ramps.MEMBER), MAX, TYPE, r, g, b);\
+      libclut_gamma(&(filter->ramps.MEMBER), MAX, TYPE, r, g, b);\
       break;
 LIST_DEPTHS
 #undef X
