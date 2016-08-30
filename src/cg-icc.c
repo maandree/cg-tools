@@ -19,8 +19,19 @@
 
 #include <libclut.h>
 
+#include <sys/stat.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+
+
+/* Note, that EDID:s are 256 hexadecimals long, and
+ * a filename can only be 255 characters long. */
 
 
 
@@ -50,9 +61,56 @@ char* const default_class = PKGNAME "::cg-icc::standard";
 
 
 /**
+ * -d: keep process alive and remove filter on death
+ */
+static int dflag = 0;
+
+/**
+ * -x: remove filter rather than adding it
+ */
+static int xflag = 0;
+
+/**
  * The panhame of the selected ICC profile
  */
-static const char* icc_filepath = NULL;
+static const char* icc_pathname = NULL;
+
+/**
+ * Gamma ramps loaded from `icc_pathname`
+ */
+static libcoopgamma_ramps_t uniramps;
+
+/**
+ * The datatype of the stops in the ramps of `uniramps`
+ */
+static libcoopgamma_depth_t unidepth = 0;
+
+/**
+ * Parsed ICC profiles for each CRTC
+ */
+static libcoopgamma_ramps_t* rampses = NULL;
+
+/**
+ * The datatype of the stops in the ramps of
+ * corresponding element in `rampses`
+ */
+static libcoopgamma_depth_t* depths = NULL;
+
+/**
+ * File descriptor for configuration directory
+ */
+static int confdirfd = -1;
+
+/**
+ * List of CRTC:s
+ */
+static char** crtc_icc_keys = NULL;
+
+/**
+ * List of ICC profile pathnames for corresponding
+ * CRTC in `crtc_icc_keys`
+ */
+static char** crtc_icc_values = NULL;
 
 
 
@@ -66,6 +124,37 @@ void usage(void)
 	  "(-x | [-p priority] [-d] [file])\n",
 	  argv0);
   exit(1);
+}
+
+
+/**
+ * Perform cleanup so valgrind output is clean
+ * 
+ * @param   ret  The value to return
+ * @return       `ret` is returned as is
+ */
+static int cleanup(int ret)
+{
+  int saved_errno = errno;
+  size_t i;
+  libcoopgamma_ramps_destroy(&uniramps);
+  if (confdirfd >= 0)
+    close(confdirfd);
+  if (rampses != NULL)
+    for (i = 0; i < crtcs_n; i++)
+      libcoopgamma_ramps_destroy(rampses + i);
+  free(rampses);
+  free(depths);
+  if (crtc_icc_keys != NULL)
+    for (i = 0; crtc_icc_keys[i] != NULL; i++)
+      free(crtc_icc_keys[i]);
+  free(crtc_icc_keys);
+  if (crtc_icc_values != NULL)
+    for (i = 0; crtc_icc_values[i] != NULL; i++)
+      free(crtc_icc_values[i]);
+  free(crtc_icc_values);
+  errno = saved_errno;
+  return ret;
 }
 
 
@@ -121,8 +210,10 @@ int handle_opt(char* opt, char* arg)
 int handle_args(int argc, char* argv[], char* method, char* site,
 		char** crtcs, char* prio, char* rule)
 {
+  struct passwd* pw;
+  char* path = NULL;
   int free_fflag = 0, saved_errno;
-  int q = xflag + dflag;
+  int fd = -1, q = xflag + dflag;
   q += (method != NULL) &&  !strcmp(method, "?");
   q += (prio   != NULL) &&  !strcmp(prio, "?");
   q += (rule   != NULL) && (!strcmp(rule, "?") || !strcmp(rule, "??"));
@@ -130,12 +221,43 @@ int handle_args(int argc, char* argv[], char* method, char* site,
     q += !strcmp(*crtcs, "?");
   if ((q > 1) || (xflag && ((argc > 0) || (prio != NULL))) || (argc > 1))
     usage();
-  icc_filepath = *argv;
+  icc_pathname = *argv;
+  memset(&uniramps, 0, sizeof(uniramps));
+  if (icc_pathname != NULL)
+    {
+      pw = getpwuid(getuid());
+      if ((pw == NULL) || (pw->pw_dir == NULL))
+	goto fail;
+      
+      path = malloc(strlen(pw->pw_dir) + sizeof("/.config"));
+      if (path == NULL)
+	goto fail;
+      
+      sprintf(path, "%s/.config", pw->pw_dir);
+      
+      if (access(path, F_OK) < 0)
+	sprintf(path, "/etc");
+      
+      confdirfd = open(path, O_DIRECTORY);
+      if (confdirfd < 0)
+	goto fail;
+      
+      free(path), path = NULL;
+      
+      fd = openat(confdirfd, "icc", O_RDONLY);
+      if (fd < 0)
+	goto fail;
+      
+      /* TODO read */
+      
+      close(fd), fd = -1;
+    }
   return 0;
  fail:
   saved_errno = errno;
-  if (free_fflag)
-    free(fflag), fflag = NULL;
+  free(path), path = NULL;
+  if (fd >= 0)
+    close(fd);
   errno = saved_errno;
   return cleanup(-1);
 }
@@ -202,7 +324,7 @@ static uint16_t icc_uint16(const char* restrict content)
  */
 static uint16_t icc_uint8(const char* restrict content)
 {
-  return (uint8_t)(content[0])
+  return (uint8_t)(content[0]);
 }
 
 
@@ -223,7 +345,7 @@ static double icc_double(const char* restrict content, size_t width)
       ret += (double)(unsigned char)(content[width - 1 - i]);
     }
   ret /= 255;
-  return ret
+  return ret;
 }
 
 
@@ -459,5 +581,256 @@ static int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_
     }
   
   return -2;
+}
+
+
+/**
+ * Load an ICC profile
+ * 
+ * @param   file   The ICC-profile file
+ * @param   ramps  Output parameter for the filter stored in the ICC profile,
+ *                 `.red_size`, `.green_size`, `.blue_size` should already be
+ *                 set (these values can however be modified.)
+ * @param   depth  Output parameter for ramps stop value type
+ * @return         Zero on success, -1 on error, -2 if no usable data is
+ *                 available in the profile.
+ */
+static int load_icc(const char* file, libcoopgamma_ramps_t* ramps, libcoopgamma_depth_t* depth)
+{
+  char* content = NULL;
+  size_t ptr = 0, size = 0;
+  ssize_t got;
+  int fd = -1, r = -1, saved_errno;
+  
+  fd = open(file, O_RDONLY);
+  if (fd < 0)
+    goto fail;
+  
+  for (;;)
+    {
+      if (ptr == size)
+	{
+	  size_t new_size = size ? (size << 1) : 4098;
+	  void* new = realloc(content, new_size);
+	  if (new == NULL)
+	    goto fail;
+	  content = new;
+	  size = new_size;
+	}
+      got = read(fd, content + ptr, size - ptr);
+      if (got < 0)
+	{
+	  if (errno == EINTR)
+	    continue;
+	  goto fail;
+	}
+      if (got == 0)
+	break;
+      ptr += (size_t)got;
+    }
+  
+  close(fd), fd = -1;
+  
+  r = parse_icc(content, ptr, ramps, depth);
+ fail:
+  saved_errno = errno;
+  if (fd >= 0)
+    close(fd);
+  free(content);
+  errno = saved_errno;
+  return r;
+}
+
+
+/**
+ * Get the pathname of the ICC profile for a CRTC
+ * 
+ * @param   crtc  The CRTC name
+ * @return        The ICC profile file
+ */
+static const char* get_icc(const char* crtc)
+{
+  size_t i;
+  for (i = 0; crtc_icc_keys[i] != NULL; i++)
+    if (!strcasecmp(crtc, crtc_icc_keys[i]))
+      return crtc_icc_values[i];
+  return NULL;
+}
+
+
+/**
+ * Fill a filter
+ * 
+ * @param  filter  The filter to fill
+ * @param  ramps   The prototype filter
+ * @param  depth   The prototype filter's stop datatype
+ */
+static void fill_filter(libcoopgamma_filter_t* filter, const libcoopgamma_ramps_t* ramps,
+			libcoopgamma_depth_t depth)
+{
+  switch (filter->depth)
+    {
+#define X(CONST, MEMBER, MAX, TYPE)\
+    case CONST:\
+      switch (depth)\
+	{\
+	case LIBCOOPGAMMA_UINT8:\
+	  libclut_translate(&(filter->ramps.MEMBER), MAX, TYPE, &(ramps->u8), UINT8_MAX, uint8_t);\
+	  break;\
+	case LIBCOOPGAMMA_UINT16:\
+	  libclut_translate(&(filter->ramps.MEMBER), MAX, TYPE, &(ramps->u16), UINT16_MAX, uint16_t);\
+	  break;\
+	case LIBCOOPGAMMA_UINT32:\
+	  libclut_translate(&(filter->ramps.MEMBER), MAX, TYPE, &(ramps->u32), UINT32_MAX, uint32_t);\
+	  break;\
+	case LIBCOOPGAMMA_UINT64:\
+	  libclut_translate(&(filter->ramps.MEMBER), MAX, TYPE, &(ramps->u64), UINT64_MAX, uint64_t);\
+	  break;\
+	case LIBCOOPGAMMA_FLOAT:\
+	  libclut_translate(&(filter->ramps.MEMBER), MAX, TYPE, &(ramps->f), (float)1, float);\
+	  break;\
+	case LIBCOOPGAMMA_DOUBLE:\
+	  libclut_translate(&(filter->ramps.MEMBER), MAX, TYPE, &(ramps->d), (double)1, double);\
+	  break;\
+	}\
+      break;
+LIST_DEPTHS
+#undef X
+    default:
+      abort();
+    }
+}
+
+
+/**
+ * The main function for the program-specific code
+ * 
+ * @return  0: Success
+ *          -1: Error, `errno` set
+ *          -2: Error, `cg.error` set
+ *          -3: Error, message already printed
+ */
+int start(void)
+{
+  int r;
+  size_t i, j;
+  const char* path;
+  
+  if (xflag)
+    for (i = 0; i < crtcs_n; i++)
+      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_REMOVE;
+  else if (dflag)
+    for (i = 0; i < crtcs_n; i++)
+      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
+  else
+    for (i = 0; i < crtcs_n; i++)
+      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
+  
+  if (!xflag && (icc_pathname == NULL))
+    if ((r = make_slaves()) < 0)
+      return cleanup(r);
+  
+  if (icc_pathname != NULL)
+    {
+      uniramps.u8.red_size = uniramps.u8.green_size = uniramps.u8.blue_size = 1;
+      for (i = 0; i < crtcs_n; i++)
+	{
+	  if (uniramps.u8.red_size   < crtc_updates[i].filter.ramps.u8.red_size)
+	    uniramps.  u8.red_size   = crtc_updates[i].filter.ramps.u8.red_size;
+	  if (uniramps.u8.green_size < crtc_updates[i].filter.ramps.u8.green_size)
+	    uniramps.  u8.green_size = crtc_updates[i].filter.ramps.u8.green_size;
+	  if (uniramps.u8.blue_size  < crtc_updates[i].filter.ramps.u8.blue_size)
+	    uniramps.  u8.blue_size  = crtc_updates[i].filter.ramps.u8.blue_size;
+	}
+      switch (load_icc(icc_pathname, &uniramps, &unidepth))
+	{
+	case 0:
+	  break;
+	case -1:
+	  return cleanup(-1);
+	case -2:
+	  fprintf(stderr, "%s: unusable ICC profile: %s\n", argv0, icc_pathname);
+	  return cleanup(-3);
+	}
+    }
+  else
+    {
+      rampses = calloc(crtcs_n, sizeof(*rampses));
+      if (rampses == NULL)
+	return cleanup(-1);
+      depths = malloc(crtcs_n * sizeof(*depths));
+      if (depths == NULL)
+	return cleanup(-1);
+      for (i = 0; i < crtcs_n; i++)
+	{
+	  rampses[i].u8.red_size   = crtc_updates[i].filter.ramps.u8.red_size;
+	  rampses[i].u8.green_size = crtc_updates[i].filter.ramps.u8.green_size;
+	  rampses[i].u8.blue_size  = crtc_updates[i].filter.ramps.u8.blue_size;
+	  path = get_icc(crtc_updates[i].filter.crtc);
+	  if (path == NULL)
+	    {
+	      /* TOOD remove CRTC */
+	    }
+	  switch (load_icc(path, rampses + i, depths + i))
+	    {
+	    case 0:
+	      break;
+	    case -1:
+	      return cleanup(-1);
+	    case -2:
+	      fprintf(stderr, "%s: unusable ICC profile: %s\n", argv0, icc_pathname);
+	      return cleanup(-3);
+	    }
+	}
+    }
+  
+  for (i = 0, r = 1; i < crtcs_n; i++)
+    {
+      if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
+	continue;
+      if (!xflag)
+	{
+	  if (icc_pathname != NULL)
+	    fill_filter(&(crtc_updates[i].filter), &uniramps, unidepth);
+	  else
+	    fill_filter(&(crtc_updates[i].filter), rampses + i, depths[i]);
+	}
+      r = update_filter(i, 0);
+      if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
+	return cleanup(r);
+      if (crtc_updates[i].slaves != NULL)
+	for (j = 0; crtc_updates[i].slaves[j] != 0; j++)
+	  {
+	    r = update_filter(crtc_updates[i].slaves[j], 0);
+	    if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
+	      return cleanup(r);
+	  }
+    }
+  
+  while (r != 1)
+    if ((r = synchronise(-1)) < 0)
+      return cleanup(r);
+  
+  if (!dflag)
+    return cleanup(0);
+  
+  if (libcoopgamma_set_nonblocking(&cg, 0) < 0)
+    return cleanup(-1);
+  for (;;)
+    if (libcoopgamma_synchronise(&cg, NULL, 0, &j) < 0)
+      switch (errno)
+	{
+	case 0:
+	  break;
+	case ENOTRECOVERABLE:
+	  goto enotrecoverable;
+	default:
+	  return cleanup(-1);
+	}
+  
+ enotrecoverable:
+  for (;;)
+    if (pause() < 0)
+      return cleanup(-1);
 }
 
