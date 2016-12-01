@@ -1,0 +1,62 @@
+.TH CG-QUERY 1 CG-TOOLS
+.SH NAME
+cg-query - List output filters applied to a monitor
+.SH SYNOPSIS
+.B cg-query
+.RB [ \-M
+.IR method ]
+.RB [ \-S
+.IR site ]
+.RB [ \-h
+.IR high ]
+.RB [ \-l
+.IR low ]
+.B \-c
+.IR crtc ]
+.SH DESCRIPTION
+.B cg-query
+prints a list of all output filters applied to the monitor
+whose EDID is
+.IR crtc .
+.SH OPTIONS
+.TP
+.BR \-h " "\fIhigh\fP
+Do not list filter with higher priority than
+.IR high .
+.TP
+.BR \-l " "\fIlow\fP
+Do not list filter with lower priority than
+.IR low .
+.TP
+.BR \-c " "\fIcrtc\fP
+Apply the filter to the CRTC with the monitor whose EDID is
+.IR crtc .
+.TP
+.BR \-M " "\fImethod\fP
+Adjustment method name or number. Recognised names include:
+
+.nf
+\fBdummy\fP      Dummy method
+\fBrandr\fP      X RAndR
+\fBvidmode\fP    X VidMode
+\fBdrm\fP        Linux DRM
+\fBgdi\fP        Windows GDI
+\fBquartz\fP     Quartz Core Graphics
+.fi
+
+The adjustment methods are supported via
+.BR libgamma (7).
+Only methods that were enabled when
+.B libgamma
+was compiled will be supported.
+.TP
+.BR \-S " "\fIsite\fP
+Select the site to which to connect. For example
+.RB ' :0 ',
+for local display 0 when using
+.BR X .
+.SH "SEE ALSO"
+.BR cg-tools (7)
+.SH BUGS
+Please report bugs to https://github.com/maandree/cg-tools/issues
+or to maandree@kth.se
