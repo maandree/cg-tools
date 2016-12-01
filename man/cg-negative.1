@@ -34,6 +34,12 @@ Do not invert the blue channel.
 Apply the filter to the CRTC with the monitor whose EDID is
 .IR crtc .
 By default, the filter is applied to all monitors.
+
+If
+.I crtc
+is
+.RB ' ? ',
+all available CRTC's are listed.
 .TP
 .B \-d
 Keep the process alive and remove the filter on death.
@@ -55,6 +61,12 @@ The adjustment methods are supported via
 Only methods that were enabled when
 .B libgamma
 was compiled will be supported.
+
+If
+.I method
+is
+.RB ' ? ',
+all available adjustment methods are printed.
 .TP
 .BR \-p " "\fIpriority\fP
 Set the priority of the filter. Filters with lower priority
@@ -63,6 +75,12 @@ must be a signed 64-bit integer (between -9223372036854775807
 and 9223372036854775808).
 .BR cg-negative 's
 default priority is 4611686018427387904.
+
+If
+.I priority
+is
+.RB ' ? ',
+the utility's default priority is printed.
 .TP
 .BR \-R " "\fIrule\fP
 Set the rule of of the filter to
@@ -70,6 +88,16 @@ Set the rule of of the filter to
 This is the last part of the filter's identifier (class).
 The default rule is
 .BR standard .
+
+If
+.I rule
+is
+.RB ' ? '
+the utility's default rule is printed. If
+.I rule
+is
+.RB ' ?? '
+the utility's default class is printed.
 .TP
 .BR \-S " "\fIsite\fP
 Select the site to which to connect. For example

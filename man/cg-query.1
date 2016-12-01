@@ -31,6 +31,12 @@ Do not list filter with lower priority than
 .BR \-c " "\fIcrtc\fP
 Apply the filter to the CRTC with the monitor whose EDID is
 .IR crtc .
+
+If
+.I crtc
+is
+.RB ' ? ',
+all available CRTC's are listed.
 .TP
 .BR \-M " "\fImethod\fP
 Adjustment method name or number. Recognised names include:
@@ -49,6 +55,12 @@ The adjustment methods are supported via
 Only methods that were enabled when
 .B libgamma
 was compiled will be supported.
+
+If
+.I method
+is
+.RB ' ? ',
+all available adjustment methods are printed.
 .TP
 .BR \-S " "\fIsite\fP
 Select the site to which to connect. For example
