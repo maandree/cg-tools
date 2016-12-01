@@ -1,0 +1,40 @@
+NAME
+	cg-tools - Cooperative gamma tools
+
+DESCRIPTION
+	cg-tools is a collection of utilities that change the colour
+	output on monitors without overriding each other.
+
+UTILITIES
+	cg-brilliance(1)
+		Set the brilliance on the monitors.
+
+	cg-darkroom(1)
+		Invert colour on the monitors and make them dark red.
+
+	cg-gamma(1)
+		Adjust the gamma curves on the monitors.
+
+	cg-icc(1)
+	       Apply ICC profiles to the monitors.
+
+	cg-limits(1)
+		Adjust the brightness and contrast on the monitors.
+
+	cg-negative(1)
+		Invert colour on the monitors.
+
+	cg-query(1)
+		List output filters applied to a monitor.
+
+	cg-rainbow(1)
+		Adds a rainbow cycle effect to the monitors.
+
+	cg-remove(1)
+		Remove output filter from monitors.
+
+	cg-sleepmode(1)
+		Gradually fade out the monitors, and gradually fade in on exit.
+
+SEE ALSO
+	libcoopgamma(7), coopgammad(1)
