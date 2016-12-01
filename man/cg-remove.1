@@ -1,0 +1,50 @@
+.TH CG-REMOVE 1 CG-TOOLS
+.SH NAME
+cg-remove - Remove output filter from monitors
+.SH SYNOPSIS
+.B cg-remove
+.RB [ \-M
+.IR method ]
+.RB [ \-S
+.IR site ]
+.RB [ \-c
+.IR crtc "]... " class ...
+.SH DESCRIPTION
+.B cg-remove
+remove the filters with the selected
+.IR class es.
+.SH OPTIONS
+.TP
+.BR \-c " "\fIcrtc\fP
+Apply the filter to the CRTC with the monitor whose EDID is
+.IR crtc .
+By default, the filter is applied to all monitors.
+.TP
+.BR \-M " "\fImethod\fP
+Adjustment method name or number. Recognised names include:
+
+.nf
+\fBdummy\fP      Dummy method
+\fBrandr\fP      X RAndR
+\fBvidmode\fP    X VidMode
+\fBdrm\fP        Linux DRM
+\fBgdi\fP        Windows GDI
+\fBquartz\fP     Quartz Core Graphics
+.fi
+
+The adjustment methods are supported via
+.BR libgamma (7).
+Only methods that were enabled when
+.B libgamma
+was compiled will be supported.
+.TP
+.BR \-S " "\fIsite\fP
+Select the site to which to connect. For example
+.RB ' :0 ',
+for local display 0 when using
+.BR X .
+.SH "SEE ALSO"
+.BR cg-tools (7)
+.SH BUGS
+Please report bugs to https://github.com/maandree/cg-tools/issues
+or to maandree@kth.se
