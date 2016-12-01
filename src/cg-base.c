@@ -118,6 +118,19 @@ struct crtc_sort_data
 
 
 /**
+ * Compare two strings
+ * 
+ * @param   a  Return -1 if this string is `NULL` or less than `b`
+ * @param   b  Return +1 if this string is less than `a`
+ * @return     See `a` and `b`, 0 is returned if `a` and `b` are equal
+ */
+static int nulstrcmp(const char *a, const char *b)
+{
+  return (a == NULL) ? -1 : strcmp(a, b);
+}
+
+
+/**
  * Compare two instances of `crtc_sort_data`
  * 
  * @param   a_  Return -1 if this one is lower
@@ -550,6 +563,7 @@ int main(int argc, char* argv[])
   char* rule = NULL;
   char* class = default_class;
   int explicit_crtcs = 0;
+  int have_crtc_q = 0;
   
   argv0 = *argv++, argc--;
   
@@ -595,6 +609,8 @@ int main(int argc, char* argv[])
 		usage();
 	      crtcs[crtcs_i++] = arg;
 	      explicit_crtcs = 1;
+	      if (!have_crtc_q && !strcmp(arg, "?"))
+		have_crtc_q = 1;
 	    }
 	  else if (!strcmp(opt, "-p"))
 	    {
@@ -625,10 +641,13 @@ int main(int argc, char* argv[])
   
   crtcs_n = crtcs_i;
   crtcs[crtcs_i] = NULL;
-  if (handle_args(argc, argv, method, site, crtcs, prio, rule) < 0)
-    goto fail;
+  if (!have_crtc_q &&
+      nulstrcmp(prio, "?") && nulstrcmp(rule, "??") &&
+      nulstrcmp(rule, "?") && nulstrcmp(method, "?"))
+    if (handle_args(argc, argv, prio) < 0)
+      goto fail;
   
-  if ((prio != NULL) && !strcmp(prio, "?"))
+  if (!nulstrcmp(prio, "?"))
     {
       printf("%" PRIi64 "\n", priority);
       return 0;
@@ -636,12 +655,12 @@ int main(int argc, char* argv[])
   else if (prio != NULL)
     priority = (int64_t)atoll(prio);
   
-  if ((rule != NULL) && !strcmp(rule, "??"))
+  if (!nulstrcmp(rule, "??"))
     {
       printf("%s\n", class);
       return 0;
     }
-  else if ((rule != NULL) && !strcmp(rule, "?"))
+  else if (!nulstrcmp(rule, "?"))
     {
       printf("%s\n", strstr(strstr(class, "::") + 2, "::") + 2);
       return 0;
@@ -660,7 +679,7 @@ int main(int argc, char* argv[])
 	}
     }
   
-  if ((method != NULL) && !strcmp(method, "?"))
+  if (!nulstrcmp(method, "?"))
     {
       if (list_methods() < 0)
 	goto fail;
@@ -676,18 +695,17 @@ int main(int argc, char* argv[])
       goto custom_fail;
     }
   stage++;
-  
-  while (crtcs_i--)
-    if (!strcmp(crtcs[crtcs_i], "?"))
-      switch (list_crtcs())
-	{
-	case 0:
-	  goto done;
-	case -1:
-	  goto fail;
-	default:
-	  goto cg_fail;
-	}
+
+  if (have_crtc_q)
+    switch (list_crtcs())
+      {
+      case 0:
+	goto done;
+      case -1:
+	goto fail;
+      default:
+	goto cg_fail;
+      }
   
   if (crtcs_n == 0)
     {

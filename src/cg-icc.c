@@ -313,27 +313,17 @@ static int load_icc_table(int fd, const char *dirname)
  * This function is called after the last
  * call to `handle_opt`
  * 
- * @param   argc    The number of unparsed arguments
- * @param   argv    `NULL` terminated list of unparsed arguments
- * @param   method  The argument associated with the "-M" option
- * @param   site    The argument associated with the "-S" option
- * @param   crtcs_  The arguments associated with the "-c" options, `NULL`-terminated
- * @param   prio    The argument associated with the "-p" option
- * @param   rule    The argument associated with the "-R" option
- * @return          Zero on success, -1 on error
+ * @param   argc  The number of unparsed arguments
+ * @param   argv  `NULL` terminated list of unparsed arguments
+ * @param   prio  The argument associated with the "-p" option
+ * @return        Zero on success, -1 on error
  */
-int handle_args(int argc, char* argv[], char* method, char* site,
-		char** crtcs_, char* prio, char* rule)
+int handle_args(int argc, char* argv[], char* prio)
 {
   struct passwd* pw;
   char* path = NULL;
   int saved_errno;
   int fd = -1, q = xflag + dflag;
-  q += (method != NULL) &&  !strcmp(method, "?");
-  q += (prio   != NULL) &&  !strcmp(prio, "?");
-  q += (rule   != NULL) && (!strcmp(rule, "?") || !strcmp(rule, "??"));
-  for (; *crtcs_; crtcs_++)
-    q += !strcmp(*crtcs_, "?");
   if ((q > 1) || (xflag && ((argc > 0) || (prio != NULL))) || (argc > 1))
     usage();
   icc_pathname = *argv;
@@ -375,7 +365,6 @@ int handle_args(int argc, char* argv[], char* method, char* site,
     close(fd);
   errno = saved_errno;
   return cleanup(-1);
-  (void) site;
 }
 
 

@@ -206,20 +206,15 @@ extern int handle_opt(char* opt, char* arg);
  * This function is called after the last
  * call to `handle_opt`
  * 
- * @param   argc    The number of unparsed arguments
- * @param   argv    `NULL` terminated list of unparsed arguments
- * @param   method  The argument associated with the "-M" option
- * @param   site    The argument associated with the "-S" option
- * @param   crtcs   The arguments associated with the "-c" options, `NULL`-terminated
- * @param   prio    The argument associated with the "-p" option
- * @param   rule    The argument associated with the "-R" option
- * @return          Zero on success, -1 on error
+ * @param   argc  The number of unparsed arguments
+ * @param   argv  `NULL` terminated list of unparsed arguments
+ * @param   prio  The argument associated with the "-p" option
+ * @return        Zero on success, -1 on error
  */
 #if defined(__GNUC__)
 __attribute__((__nonnull__(2)))
 #endif
-extern int handle_args(int argc, char* argv[], char* method, char* site, char** crtcs,
-		       char* prio, char* rule);
+extern int handle_args(int argc, char* argv[], char* prio);
 
 /**
  * The main function for the program-specific code
