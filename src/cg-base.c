@@ -653,7 +653,13 @@ int main(int argc, char* argv[])
       return 0;
     }
   else if (prio != NULL)
-    priority = (int64_t)atoll(prio);
+    {
+      char *end;
+      errno = 0;
+      priority = (int64_t)strtoll(prio, &end, 10);
+      if (errno || *end)
+	usage();
+    }
   
   if (!nulstrcmp(rule, "??"))
     {
