@@ -149,9 +149,9 @@ static int parse_double(double* restrict out, const char* restrict str)
  */
 int handle_args(int argc, char* argv[], char* prio)
 {
-  char* red;
-  char* green;
-  char* blue;
+  char* red = NULL;
+  char* green = NULL;
+  char* blue = NULL;
   int q = xflag + dflag;
   if ((q > 1) || (xflag && (prio != NULL || argc)))
     usage();

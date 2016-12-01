@@ -811,7 +811,7 @@ LIST_DEPTHS
 	const char* crtc = crtc_updates[crtcs_i].filter.crtc;
 	if (cg.error.custom)
 	  {
-	    if ((cg.error.number != 0) || (cg.error.description != NULL))
+	    if ((cg.error.number != 0) && (cg.error.description != NULL))
 	      fprintf(stderr, "%s: %s-side error number %" PRIu64 " for CRTC %s: %s\n",
 		      argv0, side, cg.error.number, crtc, cg.error.description);
 	    else if (cg.error.number != 0)
@@ -866,7 +866,7 @@ LIST_DEPTHS
     const char* side = cg.error.server_side ? "server" : "client";
     if (cg.error.custom)
       {
-	if ((cg.error.number != 0) || (cg.error.description != NULL))
+	if ((cg.error.number != 0) && (cg.error.description != NULL))
 	  fprintf(stderr, "%s: %s-side error number %" PRIu64 ": %s\n",
 		  argv0, side, cg.error.number, cg.error.description);
 	else if (cg.error.number != 0)

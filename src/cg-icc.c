@@ -279,20 +279,10 @@ static int load_icc_table(int fd, const char *dirname)
     }
   if (ferror(fp))
     goto fail;
-  if (!ptr)
-    {
-      crtc_icc_keys = calloc(1, sizeof(*crtc_icc_keys));
-      if (crtc_icc_keys == NULL)
-	goto fail;
-    }
-  crtc_icc_keys[ptr] = NULL;
-  if (!ptr)
-    {
-      crtc_icc_values = calloc(1, sizeof(*crtc_icc_values));
-      if (crtc_icc_values == NULL)
-	goto fail;
-    }
-  crtc_icc_values[ptr] = NULL;
+  if (crtc_icc_keys != NULL)
+    crtc_icc_keys[ptr] = NULL;
+  if (crtc_icc_values != NULL)
+    crtc_icc_values[ptr] = NULL;
   fclose(fp);
   free(line);
   return 0;
@@ -328,7 +318,7 @@ int handle_args(int argc, char* argv[], char* prio)
     usage();
   icc_pathname = *argv;
   memset(&uniramps, 0, sizeof(uniramps));
-  if (icc_pathname == NULL)
+  if (!xflag && (icc_pathname == NULL))
     {
       pw = getpwuid(getuid());
       if ((pw == NULL) || (pw->pw_dir == NULL))
@@ -763,9 +753,10 @@ static int load_icc(const char* file, libcoopgamma_ramps_t* ramps, libcoopgamma_
 static const char* get_icc(const char* crtc)
 {
   size_t i;
-  for (i = 0; crtc_icc_keys[i] != NULL; i++)
-    if (!strcasecmp(crtc, crtc_icc_keys[i]))
-      return crtc_icc_values[i];
+  if (crtc_icc_keys != NULL)
+    for (i = 0; crtc_icc_keys[i] != NULL; i++)
+      if (!strcasecmp(crtc, crtc_icc_keys[i]))
+	return crtc_icc_values[i];
   return NULL;
 }
 
