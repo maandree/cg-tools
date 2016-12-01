@@ -543,7 +543,7 @@ static int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_
 	  if (n - ptr < 4)
 	    continue;
 	  tag_name = icc_uint32(content + ptr), ptr += 4;
-	  if (tag_name == VCGT_TAG)
+	  if (tag_name != VCGT_TAG)
 	    continue;
 	  
 	  /* Skip four bytes */
@@ -564,9 +564,9 @@ static int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_
 	      /* Get metadata */
 	      if (n - ptr < 3 * 4)
 		continue;
-	      n_channels = icc_uint32(content + ptr), ptr += 4;
-	      n_entries  = icc_uint32(content + ptr), ptr += 4;
-	      entry_size = icc_uint32(content + ptr), ptr += 4;
+	      n_channels = icc_uint16(content + ptr), ptr += 2;
+	      n_entries  = icc_uint16(content + ptr), ptr += 2;
+	      entry_size = icc_uint16(content + ptr), ptr += 2;
 	      if (tag_size == 1584)
 		n_channels = 3, n_entries = 256, entry_size = 2;
 	      if (n_channels != 3)
