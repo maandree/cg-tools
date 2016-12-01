@@ -104,7 +104,7 @@ void usage(void)
 {
   fprintf(stderr,
 	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] [-p priority] "
-	  "[-r red-fadeout-time] [-g green-fadeout-time] [-r blue-fadeout-time] "
+	  "[-r red-fadeout-time] [-g green-fadeout-time] [-b blue-fadeout-time] "
 	  "[red-luminosity [green-luminosity [blue-luminosity]]]\n",
 	  argv0);
   exit(1);
