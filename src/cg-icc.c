@@ -46,6 +46,11 @@
  */
 #define VCGT_TAG  0x76636774L
 
+/**
+ * The filename of the configuration file
+ */
+#define ICCTAB  "icctab"
+
 
 
 /**
@@ -195,6 +200,115 @@ int handle_opt(char* opt, char* arg)
 
 
 /**
+ * Populate `crtc_icc_keys` and `crtc_icc_value`
+ * 
+ * @path    fd       File descriptor for the ICC profile table
+ * @path    dirname  The dirname of the ICC profile table
+ * @return           Zero on success, -1 on error
+ */
+static int load_icc_table(int fd, const char *dirname)
+{
+  FILE *fp;
+  ssize_t len;
+  size_t lineno = 1, size = 0;
+  char *p, *q, *line = NULL;
+  int saved_errno;
+  size_t ptr = 0, siz = 0;
+  void *new;
+  size_t dirname_len = strlen(dirname);
+  fp = fdopen(fd, "rb");
+  if (fp == NULL)
+    return -1;
+  for (; len = getline(&line, &size, fp), len >= 0; lineno++)
+    {
+      if (len && line[len - 1] == '\n')
+	line[--len] = '\0';
+      p = line + strspn(line, " \t");
+      if (!*p || (*p == '#'))
+	continue;
+      q = p + strspn(p, "0123456789abcdefABCDEF");
+      if ((*q != ' ' && *q != '\t'))
+	{
+	  fprintf(stderr, "%s: warning: line %zu is malformated in %s/%s\n",
+		  argv0, lineno, dirname, ICCTAB);
+	  continue;
+	}
+      *q = '\0';
+      if ((size_t)(q - p) != 256)
+	fprintf(stderr, "%s: warning: EDID on line %zu in %s/%s looks to be of wrong length: %s\n",
+		argv0, lineno, dirname, ICCTAB, p);
+      q++;
+      q += strspn(p, " \t");
+      if (!*q)
+	{
+	  fprintf(stderr, "%s: warning: line %zu is malformated in %s/%s\n",
+		  argv0, lineno, dirname, ICCTAB);
+	  continue;
+	}
+      if (strchr(" \t", strchr(q, '\0')[-1]))
+	fprintf(stderr, "%s: warning: filename on line %zu in %s/%s ends with white space: %s\n",
+		argv0, lineno, dirname, ICCTAB, q);
+      if (ptr == siz)
+	{
+	  new = realloc(crtc_icc_keys, (siz + 5) * sizeof(*crtc_icc_keys));
+	  if (new == NULL)
+	    goto fail;
+	  crtc_icc_keys = new;
+	  new = realloc(crtc_icc_values, (siz + 5) * sizeof(*crtc_icc_values));
+	  if (new == NULL)
+	    goto fail;
+	  crtc_icc_values = new;
+	  siz += 4;
+	}
+      crtc_icc_values[ptr] = malloc((*q == '/' ? 1 : dirname_len + sizeof("/")) + strlen(q));
+      if (crtc_icc_values[ptr] == NULL)
+	goto fail;
+      if (*q == '/')
+	strcpy(crtc_icc_values[ptr], q);
+      else
+	stpcpy(stpcpy(stpcpy(crtc_icc_values[ptr], dirname), "/"), q);
+      crtc_icc_keys[ptr] = malloc(strlen(p) + 1);
+      if (crtc_icc_keys[ptr] == NULL)
+	{
+	  ptr++;
+	  goto fail;
+	}
+      strcpy(crtc_icc_keys[ptr], p);
+      ptr++;
+    }
+  if (ferror(fp))
+    goto fail;
+  if (!ptr)
+    {
+      crtc_icc_keys = calloc(1, sizeof(*crtc_icc_keys));
+      if (crtc_icc_keys == NULL)
+	goto fail;
+    }
+  crtc_icc_keys[ptr] = NULL;
+  if (!ptr)
+    {
+      crtc_icc_values = calloc(1, sizeof(*crtc_icc_values));
+      if (crtc_icc_values == NULL)
+	goto fail;
+    }
+  crtc_icc_values[ptr] = NULL;
+  fclose(fp);
+  free(line);
+  return 0;
+ fail:
+  saved_errno = errno;
+  if (crtc_icc_keys != NULL)
+    crtc_icc_keys[ptr] = NULL;
+  if (crtc_icc_values != NULL)
+    crtc_icc_values[ptr] = NULL;
+  fclose(fp);
+  free(line);
+  errno = saved_errno;
+  return -1;
+}
+
+
+/**
  * This function is called after the last
  * call to `handle_opt`
  * 
@@ -223,7 +337,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
     usage();
   icc_pathname = *argv;
   memset(&uniramps, 0, sizeof(uniramps));
-  if (icc_pathname != NULL)
+  if (icc_pathname == NULL)
     {
       pw = getpwuid(getuid());
       if ((pw == NULL) || (pw->pw_dir == NULL))
@@ -242,14 +356,14 @@ int handle_args(int argc, char* argv[], char* method, char* site,
       if (confdirfd < 0)
 	goto fail;
       
-      free(path), path = NULL;
-      
-      fd = openat(confdirfd, "icc", O_RDONLY);
+      fd = openat(confdirfd, ICCTAB, O_RDONLY);
       if (fd < 0)
 	goto fail;
       
-      /* TODO read */
+      if (load_icc_table(fd, path) < 0)
+	goto fail;
       
+      free(path), path = NULL;
       close(fd), fd = -1;
     }
   return 0;
@@ -604,7 +718,14 @@ static int load_icc(const char* file, libcoopgamma_ramps_t* ramps, libcoopgamma_
   
   fd = open(file, O_RDONLY);
   if (fd < 0)
-    goto fail;
+    {
+      if (errno == ENOENT)
+	{
+	  fprintf(stderr, "%s: %s: %s\n", argv0, strerror(ENOENT), file);
+	  errno = 0;
+	}
+      goto fail;
+    }
   
   for (;;)
     {
@@ -769,18 +890,19 @@ int start(void)
 	  path = get_icc(crtc_updates[i].filter.crtc);
 	  if (path == NULL)
 	    {
-	      /* TOOD remove CRTC */
+	      /* TODO remove CRTC */
 	    }
-	  switch (load_icc(path, rampses + i, depths + i))
-	    {
-	    case 0:
-	      break;
-	    case -1:
-	      return cleanup(-1);
-	    case -2:
-	      fprintf(stderr, "%s: unusable ICC profile: %s\n", argv0, icc_pathname);
-	      return cleanup(-3);
-	    }
+	  else
+	    switch (load_icc(path, rampses + i, depths + i))
+	      {
+	      case 0:
+		break;
+	      case -1:
+		return cleanup(-1);
+	      case -2:
+		fprintf(stderr, "%s: unusable ICC profile: %s\n", argv0, path);
+		return cleanup(-3);
+	      }
 	}
     }
   

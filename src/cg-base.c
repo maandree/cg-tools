@@ -841,7 +841,8 @@ LIST_DEPTHS
   
  fail:
   rc = 1;
-  perror(argv0);
+  if (errno)
+    perror(argv0);
   goto done;
   
  cg_fail:
