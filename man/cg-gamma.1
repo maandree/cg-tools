@@ -1,0 +1,107 @@
+.TH CG-GAMMA 1 CG-TOOLS
+.SH NAME
+cg-gamma - Adjust the gamma curves on the monitors
+.SH SYNOPSIS
+.B cg-gamma
+.RB [ \-M
+.IR method ]
+.RB [ \-S
+.IR site ]
+.RB [ \-c
+.IR crtc "]... ["\fB\-R\fP
+.IR rule ]
+.RB ( \-x
+|
+.RB [ \-p
+.IR priority ]
+.RB [ \-d ]
+.RB [ \-f
+.I file
+|
+.I all
+|
+.I red
+.I green
+.IR blue ])
+.SH DESCRIPTION
+.B cg-gamma
+sets the gamma on the monitors to
+.I all
+on all channels, or
+.IR blue ,
+.IR green ,
+and
+.IR blue
+to the red, green, and blue channels, respectively. Alternatively,
+.B cg-gamma
+can change the gamma on each monitor independently by using
+reading the values from
+.I file
+or a default file.
+.P
+The file is 4 column text file where empty lines and lines
+starting with a '#', after any whitespace, are ignored.
+The values in the columns should be, in order, a monitor's
+EDID, that monitor's red gamma value, green gamma value, and
+blue gamma value.
+.SH OPTIONS
+.TP
+.BR \-c " "\fIcrtc\fP
+Apply the filter to the CRTC with the monitor whose EDID is
+.IR crtc .
+By default, the filter is applied to all monitors.
+.TP
+.B \-d
+Keep the process alive and remove the filter on death.
+.TP
+.BR \-M " "\fImethod\fP
+Adjustment method name or number. Recognised names include:
+
+.nf
+\fBdummy\fP      Dummy method
+\fBrandr\fP      X RAndR
+\fBvidmode\fP    X VidMode
+\fBdrm\fP        Linux DRM
+\fBgdi\fP        Windows GDI
+\fBquartz\fP     Quartz Core Graphics
+.fi
+
+The adjustment methods are supported via
+.BR libgamma (7).
+Only methods that were enabled when
+.B libgamma
+was compiled will be supported.
+.TP
+.BR \-p " "\fIpriority\fP
+Set the priority of the filter. Filters with lower priority
+are applied before filters with higher priority. The value
+must be a signed 64-bit integer (between -9223372036854775807
+and 9223372036854775808).
+.BR cg-gamma 's
+default priority is 0.
+.TP
+.BR \-R " "\fIrule\fP
+Set the rule of of the filter to
+.IR rule .
+This is the last part of the filter's identifier (class).
+The default rule is
+.BR standard .
+.TP
+.BR \-S " "\fIsite\fP
+Select the site to which to connect. For example
+.RB ' :0 ',
+for local display 0 when using
+.BR X .
+.TP
+.B \-x
+Remove the currently applied filter.
+.SH FILES
+.TP
+.B ~/.config/gamma
+The default gamma table file.
+.TP
+.B /etc/gamma
+The fallback gamma table file.
+.SH BUGS
+Please report bugs to https://github.com/maandree/cg-tools/issues
+or to maandree@kth.se
