@@ -376,21 +376,21 @@ static int parse_gamma_file(const char* restrict pathname)
  * @param   argv    `NULL` terminated list of unparsed arguments
  * @param   method  The argument associated with the "-M" option
  * @param   site    The argument associated with the "-S" option
- * @param   crtcs   The arguments associated with the "-c" options, `NULL`-terminated
+ * @param   crtcs_  The arguments associated with the "-c" options, `NULL`-terminated
  * @param   prio    The argument associated with the "-p" option
  * @param   rule    The argument associated with the "-R" option
  * @return          Zero on success, -1 on error
  */
 int handle_args(int argc, char* argv[], char* method, char* site,
-		char** crtcs, char* prio, char* rule)
+		char** crtcs_, char* prio, char* rule)
 {
   int free_fflag = 0, saved_errno;
   int q = xflag + dflag;
   q += (method != NULL) &&  !strcmp(method, "?");
   q += (prio   != NULL) &&  !strcmp(prio, "?");
   q += (rule   != NULL) && (!strcmp(rule, "?") || !strcmp(rule, "??"));
-  for (; *crtcs; crtcs++)
-    q += !strcmp(*crtcs, "?");
+  for (; *crtcs_; crtcs_++)
+    q += !strcmp(*crtcs_, "?");
   if ((q > 1) || (fflag && argc) || (xflag && ((fflag != NULL) || (argc > 0) || (prio != NULL))))
     usage();
   if (argc == 1)

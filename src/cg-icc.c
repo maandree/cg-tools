@@ -317,13 +317,13 @@ static int load_icc_table(int fd, const char *dirname)
  * @param   argv    `NULL` terminated list of unparsed arguments
  * @param   method  The argument associated with the "-M" option
  * @param   site    The argument associated with the "-S" option
- * @param   crtcs   The arguments associated with the "-c" options, `NULL`-terminated
+ * @param   crtcs_  The arguments associated with the "-c" options, `NULL`-terminated
  * @param   prio    The argument associated with the "-p" option
  * @param   rule    The argument associated with the "-R" option
  * @return          Zero on success, -1 on error
  */
 int handle_args(int argc, char* argv[], char* method, char* site,
-		char** crtcs, char* prio, char* rule)
+		char** crtcs_, char* prio, char* rule)
 {
   struct passwd* pw;
   char* path = NULL;
@@ -332,8 +332,8 @@ int handle_args(int argc, char* argv[], char* method, char* site,
   q += (method != NULL) &&  !strcmp(method, "?");
   q += (prio   != NULL) &&  !strcmp(prio, "?");
   q += (rule   != NULL) && (!strcmp(rule, "?") || !strcmp(rule, "??"));
-  for (; *crtcs; crtcs++)
-    q += !strcmp(*crtcs, "?");
+  for (; *crtcs_; crtcs_++)
+    q += !strcmp(*crtcs_, "?");
   if ((q > 1) || (xflag && ((argc > 0) || (prio != NULL))) || (argc > 1))
     usage();
   icc_pathname = *argv;
