@@ -149,7 +149,7 @@ void usage(void)
 {
   fprintf(stderr,
 	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] (-x | [-p priority] [-d] "
-	  "([-B brigtness-file] [-C contrast-file] | brightness-all:contrast-all | "
+	  "([-B brightness-file] [-C contrast-file] | brightness-all:contrast-all | "
 	  "brightness-red:contrast-red brightness-green:contrast-green brightness-blue:contrast-blue))\n",
 	  argv0);
   exit(1);
