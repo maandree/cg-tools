@@ -657,7 +657,7 @@ int main(int argc, char* argv[])
       char *end;
       errno = 0;
       priority = (int64_t)strtoll(prio, &end, 10);
-      if (errno || *end)
+      if (errno || *end || !*prio)
 	usage();
     }
   

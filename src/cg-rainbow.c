@@ -70,7 +70,7 @@ double luminosity = (double)1 / 3;
 void usage(void)
 {
   fprintf(stderr,
-	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] [-p priority] "
+	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] [-p priority]"
 	  " [-l luminosity] [-s rainbowhz]\n",
 	  argv0);
   exit(1);
@@ -127,7 +127,7 @@ static int parse_double(double* restrict out, const char* restrict str)
   *out = strtod(str, &end);
   if (errno || (*out < 0) || isinf(*out) || isnan(*out) || *end)
     return -1;
-  if (!strchr("0123456789.", *str))
+  if (!*str || !strchr("0123456789.", *str))
     return -1;
   return 0;
 }
