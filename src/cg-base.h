@@ -132,7 +132,7 @@ extern const int64_t default_priority;
 /**
  * The default class for the program
  */
-extern char* const default_class;
+extern char default_class[];
 
 
 

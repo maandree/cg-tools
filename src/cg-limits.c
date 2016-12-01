@@ -15,9 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#define _DEFAULT_SOURCE
-#define _BSD_SOURCE
-
 #include "cg-base.h"
 
 #include <libclut.h>
@@ -41,7 +38,7 @@ const int64_t default_priority = -(((int64_t)1) << 62);
 /**
  * The default class for the program
  */
-char* const default_class = PKGNAME "::cg-limits::standard";
+char default_class[] = PKGNAME "::cg-limits::standard";
 
 
 
@@ -562,6 +559,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
     free(Cflag), Cflag = NULL;
   errno = saved_errno;
   return cleanup(-1);
+  (void) site;
 }
 
 

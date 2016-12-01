@@ -35,7 +35,7 @@ const int64_t default_priority = ((int64_t)3) << 61;
 /**
  * The default class for the program
  */
-char* const default_class = PKGNAME "::cg-darkroom::standard";
+char default_class[] = PKGNAME "::cg-darkroom::standard";
 
 
 
@@ -104,6 +104,7 @@ int handle_opt(char* opt, char* arg)
   else
     usage();
   return 0;
+  (void) arg;
 }
 
 
@@ -119,7 +120,7 @@ static int parse_double(double* restrict out, const char* restrict str)
   char* end;
   errno = 0;
   *out = strtod(str, &end);
-  if (errno || (out < 0) || isinf(*out) || isnan(*out) || *end)
+  if (errno || (*out < 0) || isinf(*out) || isnan(*out) || *end)
     return -1;
   if (!strchr("0123456789.", *str))
     return -1;
@@ -143,9 +144,6 @@ static int parse_double(double* restrict out, const char* restrict str)
 int handle_args(int argc, char* argv[], char* method, char* site,
 		char** crtcs, char* prio, char* rule)
 {
-  char* red;
-  char* green;
-  char* blue;
   int q = xflag + dflag;
   q += (method != NULL) &&  !strcmp(method, "?");
   q += (prio   != NULL) &&  !strcmp(prio, "?");
@@ -162,6 +160,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
   else if (argc)
     usage();
   return 0;
+  (void) site;
 }
 
 

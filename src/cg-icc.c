@@ -61,7 +61,7 @@ const int64_t default_priority = 0;
 /**
  * The default class for the program
  */
-char* const default_class = PKGNAME "::cg-icc::standard";
+char default_class[] = PKGNAME "::cg-icc::standard";
 
 
 
@@ -196,6 +196,7 @@ int handle_opt(char* opt, char* arg)
 	usage();
       }
   return 0;
+  (void) arg;
 }
 
 
@@ -326,7 +327,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
 {
   struct passwd* pw;
   char* path = NULL;
-  int free_fflag = 0, saved_errno;
+  int saved_errno;
   int fd = -1, q = xflag + dflag;
   q += (method != NULL) &&  !strcmp(method, "?");
   q += (prio   != NULL) &&  !strcmp(prio, "?");
@@ -374,6 +375,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
     close(fd);
   errno = saved_errno;
   return cleanup(-1);
+  (void) site;
 }
 
 
@@ -669,15 +671,15 @@ static int parse_icc(const char* restrict content, size_t n, libcoopgamma_ramps_
 	      /* Get the gamma, brightness and contrast */
 	      if (n - ptr < 9 * 4)
 		continue;
-	      r_gamma = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
-	      r_min   = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
-	      r_max   = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
-	      g_gamma = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
-	      g_min   = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
-	      g_max   = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
-	      b_gamma = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
-	      b_min   = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
-	      b_max   = (double)icc_uint32(content + ptr) / 65536L, ptr += 4;
+	      r_gamma = icc_uint32(content + ptr), r_gamma /= 65536L, ptr += 4;
+	      r_min   = icc_uint32(content + ptr), r_min   /= 65536L, ptr += 4;
+	      r_max   = icc_uint32(content + ptr), r_max   /= 65536L, ptr += 4;
+	      g_gamma = icc_uint32(content + ptr), g_gamma /= 65536L, ptr += 4;
+	      g_min   = icc_uint32(content + ptr), g_min   /= 65536L, ptr += 4;
+	      g_max   = icc_uint32(content + ptr), g_max   /= 65536L, ptr += 4;
+	      b_gamma = icc_uint32(content + ptr), b_gamma /= 65536L, ptr += 4;
+	      b_min   = icc_uint32(content + ptr), b_min   /= 65536L, ptr += 4;
+	      b_max   = icc_uint32(content + ptr), b_max   /= 65536L, ptr += 4;
 	      
 	      /* Initialise ramps */
 	      *depth = LIBCOOPGAMMA_DOUBLE;

@@ -35,7 +35,7 @@ const int64_t default_priority = ((int64_t)1) << 62;
 /**
  * The default class for the program
  */
-char* const default_class = PKGNAME "::cg-negative::standard";
+char default_class[] = PKGNAME "::cg-negative::standard";
 
 
 
@@ -132,6 +132,7 @@ int handle_opt(char* opt, char* arg)
 	usage();
       }
   return 0;
+  (void) arg;
 }
 
 
@@ -160,6 +161,8 @@ int handle_args(int argc, char* argv[], char* method, char* site,
   if (argc || (q > 1) || (xflag && (prio != NULL)))
     usage();
   return 0;
+  (void) argv;
+  (void) site;
 }
 
 

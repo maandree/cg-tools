@@ -15,9 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#define _DEFAULT_SOURCE
-#define _BSD_SOURCE
-
 #include "cg-base.h"
 
 #include <libclut.h>
@@ -416,7 +413,7 @@ static int get_crtc_info(void)
 {
   size_t i, unsynced = 0, selected;
   char* synced;
-  int saved_errno, need_flush = 0;
+  int need_flush = 0;
   struct pollfd pollfd;
   
   synced = alloca(crtcs_n * sizeof(*synced));

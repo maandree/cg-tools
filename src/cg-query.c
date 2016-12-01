@@ -15,9 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#define _DEFAULT_SOURCE
-#define _BSD_SOURCE
-
 #include "arg.h"
 
 #include <libcoopgamma.h>
@@ -51,7 +48,7 @@ static char* class = NULL;
 /**
  * Print usage information and exit
  */
-void usage(void)
+static void usage(void)
 {
   fprintf(stderr,
 	  "Usage: %s [-M method] [-S site] [-h high] [-l low] [-f class] -c crtc\n",
@@ -148,7 +145,7 @@ static int print_info(void)
 {
   libcoopgamma_crtc_info_t info;
   libcoopgamma_filter_table_t table;
-  char* str;
+  const char* str;
   int saved_errno, ret = 0;
   size_t i;
   

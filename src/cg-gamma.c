@@ -15,9 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#define _DEFAULT_SOURCE
-#define _BSD_SOURCE
-
 #include "cg-base.h"
 
 #include <libclut.h>
@@ -41,7 +38,7 @@ const int64_t default_priority = 0;
 /**
  * The default class for the program
  */
-char* const default_class = PKGNAME "::cg-gamma::standard";
+char default_class[] = PKGNAME "::cg-gamma::standard";
 
 
 
@@ -218,7 +215,7 @@ static int parse_double(double* restrict out, const char* restrict str)
   char* end;
   errno = 0;
   *out = strtod(str, &end);
-  if (errno || (out < 0) || isinf(*out) || isnan(*out) || *end)
+  if (errno || (*out < 0) || isinf(*out) || isnan(*out) || *end)
     return -1;
   if (!strchr("0123456789.", *str))
     return -1;
@@ -432,6 +429,7 @@ int handle_args(int argc, char* argv[], char* method, char* site,
     free(fflag), fflag = NULL;
   errno = saved_errno;
   return cleanup(-1);
+  (void) site;
 }
 
 
