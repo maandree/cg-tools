@@ -46,6 +46,9 @@ EDID, that monitor's red gamma value, green gamma value, and
 blue gamma value.
 .SH OPTIONS
 .TP
+.B \-f " "\fIfile\fP
+Read the gamma values from the selected file.
+.TP
 .BR \-c " "\fIcrtc\fP
 Apply the filter to the CRTC with the monitor whose EDID is
 .IR crtc .
@@ -53,9 +56,6 @@ By default, the filter is applied to all monitors.
 .TP
 .B \-d
 Keep the process alive and remove the filter on death.
-.TP
-.B \-f " "\fIfile\fP
-Read the gamma values from the selected file.
 .TP
 .BR \-M " "\fImethod\fP
 Adjustment method name or number. Recognised names include:
