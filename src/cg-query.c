@@ -202,14 +202,17 @@ static int print_info(void)
   
   if (info.have_gamut)
     {
-      printf("Monitor's red colour (x y): %lf, %lf\n",
+      printf("Monitor's red colour (x, y): %lf, %lf\n",
 	     info.red_x / (double)1024, info.red_y / (double)1024);
       
-      printf("Monitor's green colour (x y): %lf, %lf\n",
+      printf("Monitor's green colour (x, y): %lf, %lf\n",
 	     info.green_x / (double)1024, info.green_y / (double)1024);
       
-      printf("Monitor's blue colour (x y): %lf, %lf\n",
+      printf("Monitor's blue colour (x, y): %lf, %lf\n",
 	     info.blue_x / (double)1024, info.blue_y / (double)1024);
+      
+      printf("Monitor's white point (x, y): %lf, %lf\n",
+	     info.white_x / (double)1024, info.white_y / (double)1024);
     }
   
   if (libcoopgamma_get_gamma_sync(&query, &table, &cg) < 0)
