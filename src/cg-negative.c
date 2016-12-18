@@ -55,12 +55,12 @@ static int xflag = 0;
 static int rplus = 0;
 
 /**
- * +r: do not touch the green channel
+ * +g: do not touch the green channel
  */
 static int gplus = 0;
 
 /**
- * +r: do not touch the blue channel
+ * +b: do not touch the blue channel
  */
 static int bplus = 0;
 
@@ -166,7 +166,7 @@ static void fill_filter(libcoopgamma_filter_t* restrict filter)
     {
 #define X(CONST, MEMBER, MAX, TYPE)\
     case CONST:\
-       libclut_negative(&(filter->ramps.MEMBER), MAX, TYPE, !rplus, !gplus, !bplus);\
+      libclut_negative(&(filter->ramps.MEMBER), MAX, TYPE, !rplus, !gplus, !bplus);\
       break;
 LIST_DEPTHS
 #undef X

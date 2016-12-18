@@ -189,7 +189,7 @@ static void fill_filter(libcoopgamma_filter_t* restrict filter)
   switch (filter->depth)
     {
 #define X(CONST, MAX, TYPE, MEMBER)							\
-      case CONST:									\
+    case CONST:										\
       for (i = 0; i < filter->ramps.MEMBER.red_size; i++)				\
 	{										\
 	  double val = (double)(filter->ramps.MEMBER.red[i]);				\

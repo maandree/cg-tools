@@ -701,7 +701,7 @@ int main(int argc, char* argv[])
       goto custom_fail;
     }
   stage++;
-
+  
   if (have_crtc_q)
     switch (list_crtcs())
       {

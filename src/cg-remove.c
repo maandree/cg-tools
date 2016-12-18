@@ -279,7 +279,7 @@ int main(int argc, char* argv[])
   char* site = NULL;
   char** crtcs_ = NULL;
   char** crtcs = alloca(argc * sizeof(char*));
-  size_t i, crtc_n = 0;
+  size_t i, crtcs_n = 0;
   
   ARGBEGIN
     {
@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
       site = EARGF(usage());
       break;
     case 'c':
-      crtcs[crtc_n++] = EARGF(usage());
+      crtcs[crtcs_n++] = EARGF(usage());
       break;
     }
   ARGEND;
@@ -304,7 +304,7 @@ int main(int argc, char* argv[])
   
   if ((method != NULL) && !strcmp(method, "?"))
     {
-      if ((site != NULL) || (crtc_n > 0) || (argc > 0))
+      if ((site != NULL) || (crtcs_n > 0) || (argc > 0))
 	usage();
       if (list_methods() < 0)
 	goto fail;
@@ -321,7 +321,7 @@ int main(int argc, char* argv[])
     }
   stage++;
   
-  for (i = 0; i < crtc_n; i++)
+  for (i = 0; i < crtcs_n; i++)
     if (!strcmp(crtcs[i], "?"))
       {
 	if (argc > 0)
@@ -340,14 +340,14 @@ int main(int argc, char* argv[])
   if (argc == 0)
     usage();
   
-  if (crtc_n == 0)
+  if (crtcs_n == 0)
     {
       crtcs = crtcs_ = libcoopgamma_get_crtcs_sync(&cg);
       if (crtcs == NULL)
 	goto cg_fail;
     }
   else
-    crtcs[crtc_n] = NULL;
+    crtcs[crtcs_n] = NULL;
   
   if (libcoopgamma_set_nonblocking(&cg, 1) < 0)
     goto fail;
