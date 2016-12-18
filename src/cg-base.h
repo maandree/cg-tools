@@ -17,6 +17,16 @@
  */
 #include <libcoopgamma.h>
 
+#include <inttypes.h>
+
+
+
+/**
+ * Value of `default_priority` that indicates
+ * that there is no default priority
+ */
+#define NO_DEFAULT_PRIORITY  INT64_MAX
+
 
 
 /**
@@ -49,7 +59,8 @@ typedef struct filter_update
    * The filter to update
    * 
    * `.filter.crtc`, `.filter.class`, and
-   * `.filter.priority`, `.filter.depth`
+   * `.filter.priority` (unless `default_priority`
+   * is `NO_DEFAULT_PRIORITY`), `.filter.depth`
    * are preconfigured, and `.filter.ramps`
    * is preinitialised and preset to an
    * identity ramp

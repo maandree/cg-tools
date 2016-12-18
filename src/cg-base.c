@@ -646,19 +646,22 @@ int main(int argc, char* argv[])
       nulstrcmp(rule, "?") && nulstrcmp(method, "?"))
     if (handle_args(argc, argv, prio) < 0)
       goto fail;
-  
-  if (!nulstrcmp(prio, "?"))
+
+  if (default_priority != NO_DEFAULT_PRIORITY)
     {
-      printf("%" PRIi64 "\n", priority);
-      return 0;
-    }
-  else if (prio != NULL)
-    {
-      char *end;
-      errno = 0;
-      priority = (int64_t)strtoll(prio, &end, 10);
-      if (errno || *end || !*prio)
-	usage();
+      if (!nulstrcmp(prio, "?"))
+	{
+	  printf("%" PRIi64 "\n", priority);
+	  return 0;
+	}
+      else if (prio != NULL)
+	{
+	  char *end;
+	  errno = 0;
+	  priority = (int64_t)strtoll(prio, &end, 10);
+	  if (errno || *end || !*prio)
+	    usage();
+	}
     }
   
   if (!nulstrcmp(rule, "??"))
