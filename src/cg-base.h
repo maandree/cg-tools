@@ -68,6 +68,11 @@ typedef struct filter_update
   libcoopgamma_filter_t filter;
   
   /**
+   * The index of the CRTC
+   */
+  size_t crtc;
+  
+  /**
    * Has the update been synchronised?
    */
   int synced;

@@ -780,6 +780,7 @@ int main(int argc, char* argv[])
 	goto fail;
       if (libcoopgamma_error_initialise(&(crtc_updates[crtcs_i].error)) < 0)
 	goto fail;
+      crtc_updates[crtcs_i].crtc = crtcs_i;
       crtc_updates[crtcs_i].synced = 1;
       crtc_updates[crtcs_i].failed = 0;
       crtc_updates[crtcs_i].master = 1;

@@ -649,7 +649,7 @@ int start(void)
   if ((brightness_names == NULL) && (contrast_names == NULL))
     for (i = 0, r = 1; i < filters_n; i++)
       {
-	if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
+	if (!(crtc_updates[i].master) || !(crtc_info[crtc_updates[i].crtc].supported))
 	  continue;
 	if (!xflag)
 	  if ((r = fill_filter(&(crtc_updates[i].filter), rbrightness, rcontrast,
@@ -673,7 +673,7 @@ int start(void)
       char** cnames = contrast_names ? contrast_names : &empty;
       for (i = 0, r = 1; i < filters_n; i++)
 	{
-	  if (!(crtc_info[i].supported))
+	  if (!(crtc_info[crtc_updates[i].crtc].supported))
 	    continue;
 	  for (j = 0; bnames[j] != NULL; j++)
 	    if (!strcasecmp(crtc_updates[i].filter.crtc, bnames[j]))

@@ -263,7 +263,7 @@ int start(void)
   
   for (i = 0, r = 1; i < filters_n; i++)
     {
-      if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
+      if (!(crtc_updates[i].master) || !(crtc_info[crtc_updates[i].crtc].supported))
 	continue;
       if (!xflag)
 	fill_filter(&(crtc_updates[i].filter));
