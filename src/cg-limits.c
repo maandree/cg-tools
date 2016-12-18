@@ -679,7 +679,7 @@ int start(void)
 	    if (!strcasecmp(crtc_updates[i].filter.crtc, bnames[j]))
 	      break;
 	  for (k = 0; cnames[k] != NULL; k++)
-	    if (!strcasecmp(crtc_updates[k].filter.crtc, cnames[k]))
+	    if (!strcasecmp(crtc_updates[i].filter.crtc, cnames[k]))
 	      break;
 	  if ((bnames[j] != NULL) || (cnames[k] != NULL))
 	    {
