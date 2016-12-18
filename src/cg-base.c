@@ -61,6 +61,11 @@ libcoopgamma_crtc_info_t* crtc_info = NULL;
  */
 size_t crtcs_n = 0;
 
+/**
+ * The number of filters
+ */
+size_t filters_n = 0;
+
 
 /**
  * Contexts for asynchronous ramp updates
@@ -724,6 +729,7 @@ int main(int argc, char* argv[])
       dealloc_crtcs = 1;
       for (; crtcs[crtcs_n] != NULL; crtcs_n++);
     }
+  filters_n = crtcs_n;
   
   if (crtcs_n == 0)
     {

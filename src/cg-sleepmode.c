@@ -294,7 +294,7 @@ int start(void)
   fade_green = !isinf(greent) && !isnan(greent);
   fade_blue  = !isinf(bluet)  && !isnan(bluet);
   
-  for (i = 0; i < crtcs_n; i++)
+  for (i = 0; i < filters_n; i++)
     crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
   
   if ((r = make_slaves()) < 0)
@@ -319,7 +319,7 @@ int start(void)
       if (fade_blue)
 	{if (blue  = 1 + t * bluet,  blue  > 1)  blue  = 1;  else if (blue  < 0)  blue  = 0;}
       
-      for (i = 0, r = 1; i < crtcs_n; i++)
+      for (i = 0, r = 1; i < filters_n; i++)
 	{
 	  if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
 	    continue;
@@ -419,7 +419,7 @@ int start(void)
 	  if (blue > 1)  blue = 1;  else if (blue < 0)  blue = 0;
 	}
       
-      for (i = 0, r = 1; i < crtcs_n; i++)
+      for (i = 0, r = 1; i < filters_n; i++)
 	{
 	  if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
 	    continue;

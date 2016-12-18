@@ -633,13 +633,13 @@ int start(void)
   size_t i, j, k;
   
   if (xflag)
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_REMOVE;
   else if (dflag)
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
   else
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
   
   if (!xflag && ((brightness_names != NULL) || (contrast_names != NULL)))
@@ -647,7 +647,7 @@ int start(void)
       return cleanup(r);
   
   if ((brightness_names == NULL) && (contrast_names == NULL))
-    for (i = 0, r = 1; i < crtcs_n; i++)
+    for (i = 0, r = 1; i < filters_n; i++)
       {
 	if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
 	  continue;
@@ -671,7 +671,7 @@ int start(void)
       char* empty = NULL;
       char** bnames = brightness_names ? brightness_names : &empty;
       char** cnames = contrast_names ? contrast_names : &empty;
-      for (i = 0, r = 1; i < crtcs_n; i++)
+      for (i = 0, r = 1; i < filters_n; i++)
 	{
 	  if (!(crtc_info[i].supported))
 	    continue;

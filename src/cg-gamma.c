@@ -460,13 +460,13 @@ int start(void)
   size_t i, j;
   
   if (xflag)
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_REMOVE;
   else if (dflag)
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
   else
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
   
   if (!xflag && (names != NULL))
@@ -474,7 +474,7 @@ int start(void)
       return cleanup(r);
   
   if (names == NULL)
-    for (i = 0, r = 1; i < crtcs_n; i++)
+    for (i = 0, r = 1; i < filters_n; i++)
       {
 	if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
 	  continue;
@@ -492,7 +492,7 @@ int start(void)
 	    }
       }
   else
-    for (i = 0, r = 1; i < crtcs_n; i++)
+    for (i = 0, r = 1; i < filters_n; i++)
       {
 	if (!(crtc_info[i].supported))
 	  continue;

@@ -225,7 +225,7 @@ int start(void)
   double pal[3];
   double t, starttime;
   
-  for (i = 0; i < crtcs_n; i++)
+  for (i = 0; i < filters_n; i++)
     crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
   
   if ((r = make_slaves()) < 0)
@@ -247,7 +247,7 @@ int start(void)
       if (pal[1] > 1)  pal[1] = 1;
       if (pal[2] > 1)  pal[2] = 1;
       
-      for (i = 0, r = 1; i < crtcs_n; i++)
+      for (i = 0, r = 1; i < filters_n; i++)
 	{
 	  if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
 	    continue;

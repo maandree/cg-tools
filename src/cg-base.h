@@ -133,6 +133,11 @@ extern libcoopgamma_crtc_info_t* crtc_info;
  */
 extern size_t crtcs_n;
 
+/**
+ * The number of filters
+ */
+extern size_t filters_n;
+
 
 
 /**

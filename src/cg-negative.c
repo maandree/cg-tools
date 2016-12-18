@@ -190,20 +190,20 @@ int start(void)
   size_t i, j;
   
   if (xflag)
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_REMOVE;
   else if (dflag)
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
   else
-    for (i = 0; i < crtcs_n; i++)
+    for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
   
   if (!xflag)
     if ((r = make_slaves()) < 0)
       return r;
   
-  for (i = 0, r = 1; i < crtcs_n; i++)
+  for (i = 0, r = 1; i < filters_n; i++)
     {
       if (!(crtc_updates[i].master) || !(crtc_info[i].supported))
 	continue;
