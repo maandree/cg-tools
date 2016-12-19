@@ -296,6 +296,8 @@ int main(int argc, char* argv[])
     case 'c':
       crtcs[crtcs_n++] = EARGF(usage());
       break;
+    default:
+      usage();
     }
   ARGEND;
   

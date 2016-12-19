@@ -414,6 +414,8 @@ int main(int argc, char* argv[])
       if ((class[0] == '*') && (class[1] == '\0'))
 	query.coalesce = 1;
       break;
+    default:
+      usage();
     }
   ARGEND;
   
