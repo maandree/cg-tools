@@ -1,0 +1,117 @@
+.TH CG-LINEAR 1 CG-TOOLS
+.SH NAME
+cg-linear - Create a span where adjustments are over unencodec RGB
+.SH SYNOPSIS
+.B cg-linear
+.RB [ \-M
+.IR method ]
+.RB [ \-S
+.IR site ]
+.RB [ \-c
+.IR crtc "]... ["\fB\-R\fP
+.IR rule-base ]
+.RB ( \-x
+|
+.RB \-p
+.IB start-priority : stop-priority
+.RB [ \-d ]
+.RB [ \+rgb ])
+.SH DESCRIPTION
+.B cg-linear
+adds two filters to the CLUT, one filter that converts
+all stops to unencoded RGB, and a second filter that
+converts all stops to encodec RGB.
+.P
+Note that if this is applied multiple times, values
+can be doubly encoded and doubly decode.
+.SH OPTIONS
+.TP
+.BR \+r
+Ignore the red channel.
+.TP
+.BR \+g
+Ignore the green channel.
+.TP
+.BR \+b
+Ignore the blue channel.
+.TP
+.BR \-c " "\fIcrtc\fP
+Apply the filter to the CRTC with the monitor whose EDID is
+.IR crtc .
+By default, the filter is applied to all monitors.
+
+If
+.I crtc
+is
+.RB ' ? ',
+all available CRTC's are listed.
+.TP
+.B \-d
+Keep the process alive and remove the filter on death.
+.TP
+.BR \-M " "\fImethod\fP
+Adjustment method name or number. Recognised names include:
+
+.nf
+\fBdummy\fP      Dummy method
+\fBrandr\fP      X RAndR
+\fBvidmode\fP    X VidMode
+\fBdrm\fP        Linux DRM
+\fBgdi\fP        Windows GDI
+\fBquartz\fP     Quartz Core Graphics
+.fi
+
+The adjustment methods are supported via
+.BR libgamma (7).
+Only methods that were enabled when
+.B libgamma
+was compiled will be supported.
+
+If
+.I method
+is
+.RB ' ? ',
+all available adjustment methods are printed.
+.TP
+.BR \-p " "\fIstart-priority\fP\fB:\fP\fIstop-priority\fP
+Set the priority of the linearisation filter to
+.IR start-priority ,
+and the priority of the delinearisation filter to
+.IR stop-priority.
+Filters with lower priority are applied before filters with
+higher priority. The value must be a signed 64-bit integer
+(between -9223372036854775807 and 9223372036854775808).
+.TP
+.BR \-R " "\fIrule-base\fP
+Set the rule base of of the filters to
+.IR rule-base . ':start' and ':stop' is appended to the
+linearisation filter's rule and delinearisation filter's rule,
+respectively. The rule is the last part of the filter's
+identifier (class). The default rule is
+.BR standard .
+
+If
+.I rule
+is
+.RB ' ? '
+the utility's default rule vase is printed. If
+.I rule
+is
+.RB ' ?? '
+the utility's default classes is printed. The first printed
+class is for the linearisation filter, and the second printed
+class is for the delinearisation filter.
+.TP
+.BR \-S " "\fIsite\fP
+Select the site to which to connect. For example
+.RB ' :0 ',
+for local display 0 when using
+.BR X .
+.TP
+.B \-x
+Remove the currently applied filter.
+.SH "SEE ALSO"
+.BR cg-tools (7)
+.SH BUGS
+Please report bugs to https://github.com/maandree/cg-tools/issues
+or to maandree@kth.se

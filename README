@@ -21,6 +21,11 @@ UTILITIES
 	cg-limits(1)
 		Adjust the brightness and contrast on the monitors.
 
+	cg-linear(1)
+		Create a span of priorities where adjustments
+		are made on unencoded (linear) RGB rather than
+		encoded RGB.
+
 	cg-negative(1)
 		Invert colour on the monitors.
 
