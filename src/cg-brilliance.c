@@ -37,6 +37,11 @@ const int64_t default_priority = ((int64_t)1) << 61;
  */
 char default_class[] = PKGNAME "::cg-brilliance::standard";
 
+/**
+ * Class suffixes
+ */
+const char* const* class_suffixes = (const char* const[]){NULL};
+
 
 
 /**

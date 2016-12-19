@@ -155,6 +155,11 @@ extern const int64_t default_priority;
  */
 extern char default_class[];
 
+/**
+ * Class suffixes
+ */
+extern const char* const* class_suffixes;
+
 
 
 /**

@@ -63,6 +63,11 @@ const int64_t default_priority = 0;
  */
 char default_class[] = PKGNAME "::cg-icc::standard";
 
+/**
+ * Class suffixes
+ */
+const char* const* class_suffixes = (const char* const[]){NULL};
+
 
 
 /**

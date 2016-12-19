@@ -43,6 +43,11 @@ const int64_t default_priority = ((int64_t)3) << 59;
  */
 char default_class[] = PKGNAME "::cg-sleepmode::standard";
 
+/**
+ * Class suffixes
+ */
+const char* const* class_suffixes = (const char* const[]){NULL};
+
 
 
 /**

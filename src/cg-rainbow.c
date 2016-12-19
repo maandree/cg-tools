@@ -40,6 +40,11 @@ const int64_t default_priority = ((int64_t)1) << 60;
  */
 char default_class[] = PKGNAME "::cg-rainbow::standard";
 
+/**
+ * Class suffixes
+ */
+const char* const* class_suffixes = (const char* const[]){NULL};
+
 
 
 /**

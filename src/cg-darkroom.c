@@ -37,6 +37,11 @@ const int64_t default_priority = ((int64_t)3) << 61;
  */
 char default_class[] = PKGNAME "::cg-darkroom::standard";
 
+/**
+ * Class suffixes
+ */
+const char* const* class_suffixes = (const char* const[]){NULL};
+
 
 
 /**

@@ -161,11 +161,11 @@ int make_slaves(void)
   struct crtc_sort_data* data;
   size_t i, j, n = 0, master = 0, master_i;
   
-  data = alloca(crtcs_n * sizeof(*data));
-  memset(data, 0, crtcs_n * sizeof(*data));
-  for (i = 0; i < crtcs_n; i++)
+  data = alloca(filters_n * sizeof(*data));
+  memset(data, 0, filters_n * sizeof(*data));
+  for (i = 0; i < filters_n; i++)
     {
-      if (!(crtc_info[i].supported))
+      if (!(crtc_info[crtc_updates[i].crtc].supported))
 	continue;
       
       data[n].depth      = crtc_updates[i].filter.depth;
@@ -303,7 +303,7 @@ int synchronise(int timeout)
   if (pollfd.revents & (POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI | POLLERR | POLLHUP | POLLNVAL))
     for (;;)
       {
-	if (libcoopgamma_synchronise(&cg, asyncs, crtcs_n, &selected) < 0)
+	if (libcoopgamma_synchronise(&cg, asyncs, filters_n, &selected) < 0)
 	  {
 	    if (errno == 0)
 	      continue;
@@ -562,13 +562,16 @@ int main(int argc, char* argv[])
   int rc = 0;
   char* method = NULL;
   char* site = NULL;
-  size_t crtcs_i = 0;
+  size_t crtc_i = 0;
   int64_t priority = default_priority;
   char* prio = NULL;
   char* rule = NULL;
   char* class = default_class;
+  char** classes = NULL;
+  size_t classes_n = 0;
   int explicit_crtcs = 0;
   int have_crtc_q = 0;
+  size_t i, filter_i;
   
   argv0 = *argv++, argc--;
   
@@ -612,7 +615,7 @@ int main(int argc, char* argv[])
 	    {
 	      if (arg == NULL)
 		usage();
-	      crtcs[crtcs_i++] = arg;
+	      crtcs[crtc_i++] = arg;
 	      explicit_crtcs = 1;
 	      if (!have_crtc_q && !strcmp(arg, "?"))
 		have_crtc_q = 1;
@@ -644,14 +647,14 @@ int main(int argc, char* argv[])
 	}
     }
   
-  crtcs_n = crtcs_i;
-  crtcs[crtcs_i] = NULL;
-  if (!have_crtc_q &&
-      nulstrcmp(prio, "?") && nulstrcmp(rule, "??") &&
-      nulstrcmp(rule, "?") && nulstrcmp(method, "?"))
+  crtcs_n = crtc_i;
+  crtcs[crtc_i] = NULL;
+  if (!have_crtc_q && nulstrcmp(method, "?") &&
+      nulstrcmp(rule, "?") && nulstrcmp(rule, "??") &&
+      ((default_priority == NO_DEFAULT_PRIORITY) || nulstrcmp(prio, "?")))
     if (handle_args(argc, argv, prio) < 0)
       goto fail;
-
+  
   if (default_priority != NO_DEFAULT_PRIORITY)
     {
       if (!nulstrcmp(prio, "?"))
@@ -671,7 +674,12 @@ int main(int argc, char* argv[])
   
   if (!nulstrcmp(rule, "??"))
     {
-      printf("%s\n", class);
+      size_t i;
+      if (*class_suffixes == NULL)
+	printf("%s\n", class);
+      else
+	for (i = 0; class_suffixes[i] != NULL; i++)
+	  printf("%s%s\n", class, class_suffixes[i]);
       return 0;
     }
   else if (!nulstrcmp(rule, "?"))
@@ -729,7 +737,6 @@ int main(int argc, char* argv[])
       dealloc_crtcs = 1;
       for (; crtcs[crtcs_n] != NULL; crtcs_n++);
     }
-  filters_n = crtcs_n;
   
   if (crtcs_n == 0)
     {
@@ -737,19 +744,38 @@ int main(int argc, char* argv[])
       goto custom_fail;
     }
   
+  if (*class_suffixes == NULL)
+    {
+      classes = &class;
+      classes_n = 1;
+    }
+  else
+    {
+      size_t len = strlen(class);
+      while (class_suffixes[classes_n])
+	classes_n++;
+      classes = alloca(classes_n * sizeof(*classes));
+      for (i = 0; i < classes_n; i++)
+	{
+	  classes[i] = alloca(len + strlen(class_suffixes[i]) + sizeof(":"));
+	  stpcpy(stpcpy(stpcpy(classes[i], class), ":"), class_suffixes[i]);
+	}
+    }
+  filters_n = classes_n * crtcs_n;
+  
   crtc_info = alloca(crtcs_n * sizeof(*crtc_info));
   memset(crtc_info, 0, crtcs_n * sizeof(*crtc_info));
-  for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
-    if (libcoopgamma_crtc_info_initialise(crtc_info + crtcs_i) < 0)
+  for (crtc_i = 0; crtc_i < crtcs_n; crtc_i++)
+    if (libcoopgamma_crtc_info_initialise(crtc_info + crtc_i) < 0)
       goto cg_fail;
   
   if (libcoopgamma_set_nonblocking(&cg, 1) < 0)
     goto fail;
   
-  asyncs = alloca(crtcs_n * sizeof(*asyncs));
-  memset(asyncs, 0, crtcs_n * sizeof(*asyncs));
-  for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
-    if (libcoopgamma_async_context_initialise(asyncs + crtcs_i) < 0)
+  asyncs = alloca(filters_n * sizeof(*asyncs));
+  memset(asyncs, 0, filters_n * sizeof(*asyncs));
+  for (filter_i = 0; filter_i < filters_n; filter_i++)
+    if (libcoopgamma_async_context_initialise(asyncs + filter_i) < 0)
       goto fail;
   
   switch (get_crtc_info())
@@ -762,51 +788,52 @@ int main(int argc, char* argv[])
       goto cg_fail;
     }
   
-  for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
+  for (crtc_i = 0; crtc_i < crtcs_n; crtc_i++)
     {
-      if (explicit_crtcs && !(crtc_info[crtcs_i].supported))
+      if (explicit_crtcs && !(crtc_info[crtc_i].supported))
 	fprintf(stderr, "%s: warning: gamma adjustments not supported on CRTC: %s\n",
-		argv0, crtcs[crtcs_i]);
-      if (crtc_info[crtcs_i].cooperative == 0)
+		argv0, crtcs[crtc_i]);
+      if (crtc_info[crtc_i].cooperative == 0)
 	fprintf(stderr, "%s: warning: cooperative gamma server not running for CRTC: %s\n",
-		argv0, crtcs[crtcs_i]);
+		argv0, crtcs[crtc_i]);
     }
   
-  crtc_updates = alloca(crtcs_n * sizeof(*crtc_updates));
-  memset(crtc_updates, 0, crtcs_n * sizeof(*crtc_updates));
-  for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
-    {
-      if (libcoopgamma_filter_initialise(&(crtc_updates[crtcs_i].filter)) < 0)
-	goto fail;
-      if (libcoopgamma_error_initialise(&(crtc_updates[crtcs_i].error)) < 0)
-	goto fail;
-      crtc_updates[crtcs_i].crtc = crtcs_i;
-      crtc_updates[crtcs_i].synced = 1;
-      crtc_updates[crtcs_i].failed = 0;
-      crtc_updates[crtcs_i].master = 1;
-      crtc_updates[crtcs_i].slaves = NULL;
-      crtc_updates[crtcs_i].filter.crtc                = crtcs[crtcs_i];
-      crtc_updates[crtcs_i].filter.class               = class;
-      crtc_updates[crtcs_i].filter.priority            = priority;
-      crtc_updates[crtcs_i].filter.depth               = crtc_info[crtcs_i].depth;
-      crtc_updates[crtcs_i].filter.ramps.u8.red_size   = crtc_info[crtcs_i].red_size;
-      crtc_updates[crtcs_i].filter.ramps.u8.green_size = crtc_info[crtcs_i].green_size;
-      crtc_updates[crtcs_i].filter.ramps.u8.blue_size  = crtc_info[crtcs_i].blue_size;
-      switch (crtc_updates[crtcs_i].filter.depth)
-	{
+  crtc_updates = alloca(filters_n * sizeof(*crtc_updates));
+  memset(crtc_updates, 0, filters_n * sizeof(*crtc_updates));
+  for (filter_i = i = 0; i < classes_n; i++)
+    for (crtc_i = 0; crtc_i < crtcs_n; crtc_i++, filter_i++)
+      {
+	if (libcoopgamma_filter_initialise(&(crtc_updates[filter_i].filter)) < 0)
+	  goto fail;
+	if (libcoopgamma_error_initialise(&(crtc_updates[filter_i].error)) < 0)
+	  goto fail;
+	crtc_updates[filter_i].crtc = crtc_i;
+	crtc_updates[filter_i].synced = 1;
+	crtc_updates[filter_i].failed = 0;
+	crtc_updates[filter_i].master = 1;
+	crtc_updates[filter_i].slaves = NULL;
+	crtc_updates[filter_i].filter.crtc                = crtcs[crtc_i];
+	crtc_updates[filter_i].filter.class               = classes[i];
+	crtc_updates[filter_i].filter.priority            = priority;
+	crtc_updates[filter_i].filter.depth               = crtc_info[crtc_i].depth;
+	crtc_updates[filter_i].filter.ramps.u8.red_size   = crtc_info[crtc_i].red_size;
+	crtc_updates[filter_i].filter.ramps.u8.green_size = crtc_info[crtc_i].green_size;
+	crtc_updates[filter_i].filter.ramps.u8.blue_size  = crtc_info[crtc_i].blue_size;
+	switch (crtc_updates[filter_i].filter.depth)
+	  {
 #define X(CONST, MEMBER, MAX, TYPE)\
-	case CONST:\
-	  libcoopgamma_ramps_initialise(&(crtc_updates[crtcs_i].filter.ramps.MEMBER));\
-	  libclut_start_over(&(crtc_updates[crtcs_i].filter.ramps.MEMBER), MAX, TYPE, 1, 1, 1);\
-	  break;
+	    case CONST:\
+	      libcoopgamma_ramps_initialise(&(crtc_updates[filter_i].filter.ramps.MEMBER));\
+	      libclut_start_over(&(crtc_updates[filter_i].filter.ramps.MEMBER), MAX, TYPE, 1, 1, 1);\
+	      break;
 LIST_DEPTHS
 #undef X
-	default:
-	  fprintf(stderr, "%s: internal error: gamma ramp type is unrecognised: %i\n",
-		  argv0, crtc_updates[crtcs_i].filter.depth);
-	  goto custom_fail;
-	}
-    }
+	  default:
+	    fprintf(stderr, "%s: internal error: gamma ramp type is unrecognised: %i\n",
+		    argv0, crtc_updates[filter_i].filter.depth);
+	    goto custom_fail;
+	  }
+      }
   
   switch (start())
     {
@@ -820,11 +847,11 @@ LIST_DEPTHS
       goto custom_fail;
     }
   
-  for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
-    if (crtc_updates[crtcs_i].failed)
+  for (filter_i = 0; filter_i < filters_n; filter_i++)
+    if (crtc_updates[filter_i].failed)
       {
 	const char* side = cg.error.server_side ? "server" : "client";
-	const char* crtc = crtc_updates[crtcs_i].filter.crtc;
+	const char* crtc = crtc_updates[filter_i].filter.crtc;
 	if (cg.error.custom)
 	  {
 	    if ((cg.error.number != 0) && (cg.error.description != NULL))
@@ -846,23 +873,23 @@ LIST_DEPTHS
   if (dealloc_crtcs)
     free(crtcs);
   if (crtc_info != NULL)
-    for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
-      libcoopgamma_crtc_info_destroy(crtc_info + crtcs_i);
+    for (crtc_i = 0; crtc_i < crtcs_n; crtc_i++)
+      libcoopgamma_crtc_info_destroy(crtc_info + crtc_i);
   if (asyncs != NULL)
-    for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
-      libcoopgamma_async_context_destroy(asyncs + crtcs_i);
+    for (filter_i = 0; filter_i < filters_n; filter_i++)
+      libcoopgamma_async_context_destroy(asyncs + filter_i);
   if (stage >= 1)
     libcoopgamma_context_destroy(&cg, stage >= 2);
   if (crtc_updates != NULL)
-    for (crtcs_i = 0; crtcs_i < crtcs_n; crtcs_i++)
+    for (filter_i = 0; filter_i < filters_n; filter_i++)
       {
-	if (crtc_updates[crtcs_i].master == 0)
-	  memset(&(crtc_updates[crtcs_i].filter.ramps.u8), 0, sizeof(crtc_updates[crtcs_i].filter.ramps.u8));
-	crtc_updates[crtcs_i].filter.crtc = NULL;
-	crtc_updates[crtcs_i].filter.class = NULL;
-	libcoopgamma_filter_destroy(&(crtc_updates[crtcs_i].filter));
-	libcoopgamma_error_destroy(&(crtc_updates[crtcs_i].error));
-	free(crtc_updates[crtcs_i].slaves);
+	if (crtc_updates[filter_i].master == 0)
+	  memset(&(crtc_updates[filter_i].filter.ramps.u8), 0, sizeof(crtc_updates[filter_i].filter.ramps.u8));
+	crtc_updates[filter_i].filter.crtc = NULL;
+	crtc_updates[filter_i].filter.class = NULL;
+	libcoopgamma_filter_destroy(&(crtc_updates[filter_i].filter));
+	libcoopgamma_error_destroy(&(crtc_updates[filter_i].error));
+	free(crtc_updates[filter_i].slaves);
       }
   return rc;
   
