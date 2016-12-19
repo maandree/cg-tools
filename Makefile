@@ -15,6 +15,7 @@ BIN = bin/cg-brilliance \
       bin/cg-gamma \
       bin/cg-icc \
       bin/cg-limits \
+      bin/cg-linear \
       bin/cg-negative \
       bin/cg-query \
       bin/cg-rainbow \
@@ -26,6 +27,7 @@ MAN1 = man/cg-brilliance.1 \
        man/cg-gamma.1 \
        man/cg-icc.1 \
        man/cg-limits.1 \
+       man/cg-linear.1 \
        man/cg-negative.1 \
        man/cg-query.1 \
        man/cg-rainbow.1 \
