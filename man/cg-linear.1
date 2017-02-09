@@ -12,7 +12,7 @@ cg-linear - Create a span where adjustments are over unencodec RGB
 .IR rule-base ]
 .RB ( \-x
 |
-.RB \-p
+.B \-p
 .IB start-priority : stop-priority
 .RB [ \-d ]
 .RB [ \+rgb ])
@@ -89,10 +89,14 @@ The value must be a signed 64-bit integer (between
 .TP
 .BR \-R " "\fIrule-base\fP
 Set the rule base of of the filters to
-.IR rule-base . ':start' and ':stop' is appended to the
+.IR rule-base .
+.RB ' :start '
+and
+.RB ' :stop '
+are appended to the
 linearisation filter's rule and delinearisation filter's rule,
 respectively. The rule is the last part of the filter's
-identifier (class). The default rule is
+identifier (class). The default rule base is
 .BR standard .
 
 If

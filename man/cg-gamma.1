@@ -39,14 +39,16 @@ reading the values from
 .I file
 or a default file.
 .P
-The file is 4 column text file where empty lines and lines
-starting with a '#', after any whitespace, are ignored.
+The file is a 4-column text file where empty lines and lines
+starting with a
+.RB ' # ',
+after any whitespace, are ignored.
 The values in the columns should be, in order, a monitor's
 EDID, that monitor's red gamma value, green gamma value, and
 blue gamma value.
 .SH OPTIONS
 .TP
-.B \-f " "\fIfile\fP
+.BR \-f " "\fIfile\fP
 Read the gamma values from the selected file.
 .TP
 .BR \-c " "\fIcrtc\fP
