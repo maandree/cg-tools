@@ -19,6 +19,7 @@
 
 #include <libclut.h>
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,17 +31,17 @@
 /**
  * The default filter priority for the program
  */
-const int64_t default_priority = NO_DEFAULT_PRIORITY;
+const int64_t default_priority = -((int64_t)3 << 61);
 
 /**
- * The default class base for the program
+ * The default class for the program
  */
-char default_class[] = PKGNAME "::cg-linear::standard";
+char default_class[] = PKGNAME "::cg-shallow::standard";
 
 /**
  * Class suffixes
  */
-const char* const* class_suffixes = (const char* const[]){":start", ":stop", NULL};
+const char* const* class_suffixes = (const char* const[]){NULL};
 
 
 
@@ -55,30 +56,19 @@ static int dflag = 0;
 static int xflag = 0;
 
 /**
- * +r: do not touch the red channel
+ * The emulated red resolution, 0 for unchanged.
  */
-static int rplus = 0;
+static size_t rres = 2;
 
 /**
- * +g: do not touch the green channel
+ * The emulated green resolution, 0 for unchanged.
  */
-static int gplus = 0;
+static size_t gres = 2;
 
 /**
- * +b: do not touch the blue channel
+ * The emulated blue resolution, 0 for unchanged.
  */
-static int bplus = 0;
-
-/**
- * The priority of the linearisation filter
- */
-static int64_t start_priority;
-
-/**
- * The priority of the delinearisation filter
- */
-static int64_t stop_priority;
-
+static size_t bres = 2;
 
 
 /**
@@ -87,8 +77,8 @@ static int64_t stop_priority;
 void usage(void)
 {
   fprintf(stderr,
-	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule-base] "
-	  "(-x | -p start-priority:stop-priority [-d] [+rgb])\n",
+	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] "
+	  "(-x | [-p priority] [-d] [all | red green blue])\n",
 	  argv0);
   exit(1);
 }
@@ -127,28 +117,29 @@ int handle_opt(char* opt, char* arg)
 	usage();
       }
   else
-    switch (opt[1])
-      {
-      case 'r':
-	if (rplus)
-	  usage();
-	rplus = 1;
-	break;
-      case 'g':
-	if (gplus)
-	  usage();
-	gplus = 1;
-	break;
-      case 'b':
-	if (bplus)
-	  usage();
-	bplus = 1;
-	break;
-      default:
-	usage();
-      }
+    usage();
   return 0;
   (void) arg;
+}
+
+
+/**
+ * Parse a non-negative integer encoded as a string
+ * 
+ * @param   out  Output parameter for the value
+ * @param   str  The string
+ * @return       Zero on success, -1 if the string is invalid
+ */
+static int parse_int(size_t* restrict out, const char* restrict str)
+{
+  char* end;
+  errno = 0;
+  if (!isdigit(*str))
+    return -1;
+  *out = strtoul(str, &end, 10);
+  if (errno || *end)
+    return -1;
+  return 0;
 }
 
 
@@ -163,26 +154,30 @@ int handle_opt(char* opt, char* arg)
  */
 int handle_args(int argc, char* argv[], char* prio)
 {
-  int q = xflag + (dflag | rplus | gplus | bplus);
-  char *p, *end;
-  if (argc || (q > 1) || (xflag && (prio != NULL)))
+  char* red = NULL;
+  char* green = NULL;
+  char* blue = NULL;
+  int q = xflag + (dflag | (argc > 0));
+  if ((q > 1) || (xflag && (prio != NULL)))
     usage();
-  if (!xflag && (prio == NULL))
-    usage();
-  if (prio != NULL)
+  if (argc == 1)
+    red = green = blue = argv[0];
+  else if (argc == 3)
     {
-      p = strchr(prio, ':');
-      if (!p)
-	usage();
-      *p++ = '\0';
-      errno = 0;
-      start_priority = (size_t)strtoul(prio, &end, 10);
-      if (errno || *end || !*prio)
-	usage();
-      stop_priority = (size_t)strtoul(p, &end, 10);
-      if (errno || *end || !*prio)
-	usage();
-      p[-1] = ':';
+      red   = argv[0];
+      green = argv[1];
+      blue  = argv[2];
+    }
+  else if (argc && !xflag)
+    usage();
+  if (argc)
+    {
+      if (parse_int(&rres, red) < 0)
+        usage();
+      if (parse_int(&gres, blue) < 0)
+        usage();
+      if (parse_int(&bres, green) < 0)
+        usage();
     }
   return 0;
   (void) argv;
@@ -192,19 +187,15 @@ int handle_args(int argc, char* argv[], char* prio)
 /**
  * Fill a filter
  * 
- * @param  filter    The filter to fill
- * @param  is_start  If the fitler is a linearisation filter
+ * @param  filter  The filter to fill
  */
-static void fill_filter(libcoopgamma_filter_t* restrict filter, int is_start)
+static void fill_filter(libcoopgamma_filter_t* restrict filter)
 {
   switch (filter->depth)
     {
 #define X(CONST, MEMBER, MAX, TYPE)\
     case CONST:\
-      if (is_start)\
-        libclut_linearise(&(filter->ramps.MEMBER), MAX, TYPE, !rplus, !gplus, !bplus);\
-      else\
-        libclut_standardise(&(filter->ramps.MEMBER), MAX, TYPE, !rplus, !gplus, !bplus);\
+	    libclut_lower_resolution(&(filter->ramps.MEMBER), MAX, TYPE, 0, rres, 0, gres, 0, bres);\
       break;
 LIST_DEPTHS
 #undef X
@@ -237,18 +228,26 @@ int start(void)
     for (i = 0; i < filters_n; i++)
       crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
   
+  if (!xflag)
+    if ((r = make_slaves()) < 0)
+      return r;
+  
   for (i = 0, r = 1; i < filters_n; i++)
     {
-      if (!(crtc_info[crtc_updates[i].crtc].supported))
+      if (!(crtc_updates[i].master) || !(crtc_info[crtc_updates[i].crtc].supported))
 	continue;
-      if (!xflag) {
-	int is_start = strchr(crtc_updates[i].filter.class, '\0')[-1] == 't';
-	fill_filter(&(crtc_updates[i].filter), is_start);
-	crtc_updates[i].filter.priority = is_start ? start_priority : stop_priority;
-      }
+      if (!xflag)
+	fill_filter(&(crtc_updates[i].filter));
       r = update_filter(i, 0);
       if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
 	return r;
+      if (crtc_updates[i].slaves != NULL)
+	for (j = 0; crtc_updates[i].slaves[j] != 0; j++)
+	  {
+	    r = update_filter(crtc_updates[i].slaves[j], 0);
+	    if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
+	      return r;
+	  }
     }
   
   while (r != 1)

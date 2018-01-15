@@ -20,7 +20,8 @@ BIN = bin/cg-brilliance \
       bin/cg-query \
       bin/cg-rainbow \
       bin/cg-remove \
-      bin/cg-sleepmode
+      bin/cg-sleepmode \
+      bin/cg-shallow
 
 MAN1 = man/cg-brilliance.1 \
        man/cg-darkroom.1 \
@@ -32,7 +33,8 @@ MAN1 = man/cg-brilliance.1 \
        man/cg-query.1 \
        man/cg-rainbow.1 \
        man/cg-remove.1 \
-       man/cg-sleepmode.1
+       man/cg-sleepmode.1 \
+       man/cg-shallow.1
 
 MAN7 = man/cg-tools.7
 

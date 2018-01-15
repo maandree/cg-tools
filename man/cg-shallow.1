@@ -1,8 +1,8 @@
-.TH CG-NEGATIVE 1 CG-TOOLS
+.TH CG-SHALLOW 1 CG-TOOLS
 .SH NAME
-cg-negative - Invert colour on the monitors
+cg-shallow - Emulate low colour resolution on the monitors
 .SH SYNOPSIS
-.B cg-negative
+.B cg-shallow
 .RB [ \-M
 .IR method ]
 .RB [ \-S
@@ -15,20 +15,35 @@ cg-negative - Invert colour on the monitors
 .RB [ \-p
 .IR priority ]
 .RB [ \-d ]
-.RB [ \+rgb ])
+.RI [ all
+|
+.I red
+.I green
+.IR blue ])
 .SH DESCRIPTION
-.B cg-negative
-inverts the colours on the monitors.
+.B cg-shallow
+degrades the colour resolution on the monitors, to
+.I all
+values on each channel, or to
+.IR red ,
+.IR green ,
+and
+.I blue
+to the red, green, and blue channels independently, respectively.
+A value of 0 means the resolution will not be changes. The values
+are encodingly equidistantly distributed with black and full colour
+remaining as is, unless the value 1 is specified, in which case
+it undefined which brightness the channel will be fixed at.
+.PP
+If neither
+.I all
+or
+.IR red ,
+.IR green ,
+and
+.I blue
+are specified, the value 2 for all channels is selected by default.
 .SH OPTIONS
-.TP
-.BR \+r
-Do not invert the red channel.
-.TP
-.BR \+g
-Do not invert the green channel.
-.TP
-.BR \+b
-Do not invert the blue channel.
 .TP
 .BR \-c " "\fIcrtc\fP
 Apply the filter to the CRTC with the monitor whose EDID is
@@ -74,8 +89,8 @@ Set the priority of the filter. Filters with higher priority
 are applied before filters with lower priority. The value
 must be a signed 64-bit integer (between \-9223372036854775807
 and 9223372036854775807).
-.BR cg-negative 's
-default priority is 4611686018427387904.
+.BR cg-brilliance 's
+default priority is \-6917529027641081856.
 
 If
 .I priority

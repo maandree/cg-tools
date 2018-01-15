@@ -1,6 +1,6 @@
 /**
  * cg-tools -- Cooperative gamma-enabled tools
- * Copyright (C) 2016  Mattias Andrée (maandree@kth.se)
+ * Copyright (C) 2016, 2018  Mattias Andrée (maandree@kth.se)
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 /**
  * The default filter priority for the program
  */
-const int64_t default_priority = -(((int64_t)1) << 62);
+const int64_t default_priority = -((int64_t)1 << 62);
 
 /**
  * The default class for the program
@@ -272,7 +272,7 @@ static char* get_conf_file(const char* restrict confname)
  * 
  * @param   out  Output parameter for the value
  * @param   str  The string
- * @retunr       Zero on success, -1 if the string is invalid
+ * @return       Zero on success, -1 if the string is invalid
  */
 static int parse_double(double* restrict out, const char* restrict str)
 {
@@ -293,7 +293,7 @@ static int parse_double(double* restrict out, const char* restrict str)
  * @param   left   Output parameter for the first value
  * @param   right  Output parameter for the second value
  * @param   str    The string
- * @retunr         Zero on success, -1 if the string is invalid
+ * @return         Zero on success, -1 if the string is invalid
  */
 static int parse_twidouble(double* restrict left, double* restrict right, const char* restrict str)
 {

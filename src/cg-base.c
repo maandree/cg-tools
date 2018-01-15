@@ -1,6 +1,6 @@
 /**
  * cg-tools -- Cooperative gamma-enabled tools
- * Copyright (C) 2016  Mattias Andrée (maandree@kth.se)
+ * Copyright (C) 2016, 2018  Mattias Andrée (maandree@kth.se)
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
