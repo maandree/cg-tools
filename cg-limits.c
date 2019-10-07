@@ -648,7 +648,7 @@ start(void)
 			r = update_filter(i, 0);
 			if (r == -2 || (r == -1 && errno != EAGAIN))
 				return cleanup(r);
-			if (!crtc_updates[i].slaves) {
+			if (crtc_updates[i].slaves) {
 				for (j = 0; crtc_updates[i].slaves[j]; j++) {
 					r = update_filter(crtc_updates[i].slaves[j], 0);
 					if (r == -2 || (r == -1 && errno != EAGAIN))

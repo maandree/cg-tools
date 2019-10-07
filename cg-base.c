@@ -572,7 +572,9 @@ main(int argc, char *argv[])
 		}
 		opt[0] = *args++;
 		opt[2] = '\0';
-		if ((*opt != '-') && (*opt != '+'))
+		if (*opt != '-' && *opt != '+')
+			break;
+		if (!*args)
 			break;
 		while (*args) {
 			opt[1] = *args++;
