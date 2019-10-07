@@ -1,12 +1,8 @@
-bin/
-obj/
-\#*\#
-.\#*
+/cg-*
+!*.h
+!*.c
+*\#*
 *~
-*.bak
-*.orig
-*.swo
-*.swp
 *.o
-*.out
 *.su
+*.out

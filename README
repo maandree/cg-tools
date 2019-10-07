@@ -42,4 +42,4 @@ UTILITIES
 		Gradually fade out the monitors, and gradually fade in on exit.
 
 SEE ALSO
-	libcoopgamma(7), coopgammad(1)
+	libcoopgamma(7), coopgammad(1), radharc(1)

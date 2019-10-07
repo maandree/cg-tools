@@ -1,112 +1,70 @@
-PREFIX = /usr
-BINDIR = $(PREFIX)/bin
-DATADIR = $(PREFIX)/share
-MANDIR = $(DATADIR)/man
-MAN1DIR = $(MANDIR)/man1
-MAN7DIR = $(MANDIR)/man7
-LICENSEDIR = $(DATADIR)/licenses
+.POSIX:
 
+CONFIGFILE = config.mk
+include $(CONFIGFILE)
 
 PKGNAME = cg-tools
 
+XOUT =\
+	cg-brilliance\
+	cg-darkroom\
+	cg-gamma\
+	cg-icc\
+	cg-limits\
+	cg-linear\
+	cg-negative\
+	cg-rainbow\
+	cg-sleepmode\
+	cg-shallow
 
-BIN = bin/cg-brilliance \
-      bin/cg-darkroom \
-      bin/cg-gamma \
-      bin/cg-icc \
-      bin/cg-limits \
-      bin/cg-linear \
-      bin/cg-negative \
-      bin/cg-query \
-      bin/cg-rainbow \
-      bin/cg-remove \
-      bin/cg-sleepmode \
-      bin/cg-shallow
+XBIN =\
+	cg-query\
+	cg-remove
 
-MAN1 = man/cg-brilliance.1 \
-       man/cg-darkroom.1 \
-       man/cg-gamma.1 \
-       man/cg-icc.1 \
-       man/cg-limits.1 \
-       man/cg-linear.1 \
-       man/cg-negative.1 \
-       man/cg-query.1 \
-       man/cg-rainbow.1 \
-       man/cg-remove.1 \
-       man/cg-sleepmode.1 \
-       man/cg-shallow.1
+HDR =\
+	arg.h\
+	cg-base.h
 
-MAN7 = man/cg-tools.7
+BIN = $(XBIN) $(XOUT)
+OUT = $(XOUT:=.out)
+OBJ = $(BIN:=.o) cg-base.o
+MAN1 = $(BIN:=.1)
+MAN7 = cg-tools.7
 
+all: $(XBIN) $(OUT)
+$(OBJ): $(@:.o=.c) $(HDR)
+$(OUT): $(@:.out=.o) cg-base.o
 
-OPTIMISE = -O2
+.c.o:
+	$(CC) -c -o $@ $< $(CPPFLAGS) $(CFLAGS)
 
-WARN = -Wall -Wextra
+.o.out:
+	$(CC) -o $@ $< cg-base.o $(LDFLAGS)
 
-DEF = -D'PKGNAME="$(PKGNAME)"' -D_DEFAULT_SOURCE -D_BSD_SOURCE
+cg-query: cg-query.o
+	$(CC) -o $@ $@.o $(LDFLAGS)
 
+cg-remove: cg-remove.o
+	$(CC) -o $@ $@.o $(LDFLAGS)
 
-all: $(BIN)
-
-bin/%: obj/%.o obj/cg-base.o
-	@mkdir -p -- "$$(dirname -- "$@")"
-	$(CC) -std=c99 $(OPTIMISE) $(WARN) $(DEF) -o $@ $^ $(LDFLAGS) -lm -lcoopgamma
-
-bin/cg-query: obj/cg-query.o
-	@mkdir -p -- "$$(dirname -- "$@")"
-	$(CC) -std=c99 $(OPTIMISE) $(WARN) $(DEF) -o $@ $^ $(LDFLAGS) -lm -lcoopgamma
-
-bin/cg-remove: obj/cg-remove.o
-	@mkdir -p -- "$$(dirname -- "$@")"
-	$(CC) -std=c99 $(OPTIMISE) $(WARN) $(DEF) -o $@ $^ $(LDFLAGS) -lm -lcoopgamma
-
-obj/%.o: src/%.c src/*.h
-	@mkdir -p -- "$$(dirname -- "$@")"
-	$(CC) -std=c99 $(OPTIMISE) $(WARN) $(DEF) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
-
-
-install: install-base install-doc
-
-install-base: install-cmd install-copyright
-
-install-copyright: install-license install-copying
-
-install-doc: install-man
-
-install-man: install-man1 install-man7
-
-install-cmd: $(BIN)
-	mkdir -p -- "$(DESTDIR)$(BINDIR)"
-	install -m755 -- $(BIN) "$(DESTDIR)$(BINDIR)"
-
-install-license:
-	mkdir -p -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)"
-	install -m644 -- LICENSE "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)/LICENSE"
-
-install-copying:
-	mkdir -p -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)"
-	install -m644 -- COPYING "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)/COPYING"
-
-install-man1:
-	mkdir -p -- "$(DESTDIR)$(MAN1DIR)"
-	install -m644 -- $(MAN1) "$(DESTDIR)$(MAN1DIR)"
-
-install-man7:
-	mkdir -p -- "$(DESTDIR)$(MAN7DIR)"
-	install -m644 -- $(MAN7) "$(DESTDIR)$(MAN7DIR)"
-
+install: $(XBIN) $(OUT)
+	mkdir -p -- "$(DESTDIR)$(PREFIX)/bin"
+	mkdir -p -- "$(DESTDIR)$(MANPREFIX)/man1"
+	mkdir -p -- "$(DESTDIR)$(MANPREFIX)/man7"
+	cp -- $(XBIN) "$(DESTDIR)$(PREFIX)/bin"
+	for x in $(XOUT); do cp -- "$$x.out" "$(DESTDIR)$(PREFIX)/bin/$$x" || exit 1; done
+	cp -- $(MAN1) "$(DESTDIR)$(MANPREFIX)/man1"
+	cp -- $(MAN7) "$(DESTDIR)$(MANPREFIX)/man7"
 
 uninstall:
-	-cd "$(DESTDIR)$(BINDIR)" && rm -- $$(printf -- '%s\n' $(BIN) | cut -d / -f 2-)
-	-rm -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)/LICENSE"
-	-rm -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)/COPYING"
-	-rmdir -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)"
-	-cd "$(DESTDIR)$(MAN1DIR)" && rm -- $$(printf -- '%s\n' $(MAN1) | cut -d / -f 2-)
-	-cd "$(DESTDIR)$(MAN7DIR)" && rm -- $$(printf -- '%s\n' $(MAN7) | cut -d / -f 2-)
-
+	-cd -- "$(DESTDIR)$(PREFIX)/bin" && rm -f -- $(XBIN) $(XOUT)
+	-cd -- "$(DESTDIR)$(MANPREFIX)/man1" && rm -f -- $(MAN1)
+	-cd -- "$(DESTDIR)$(MANPREFIX)/man7" && rm -f -- $(MAN7)
 
 clean:
-	-rm -r -- bin obj
+	-rm -f -- $(BIN) *.o *.su *.out
 
-.PHONY: all clean install install-base install-doc install-cmd install-copyright \
-	install-license install-copying install-man install-man1 install-man7 uninstall
+.SUFFIXES:
+.SUFFIXES: .c .o .out
+
+.PHONY: all install uninstall clean install

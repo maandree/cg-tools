@@ -1,8 +1,8 @@
-.TH CG-ICC 1 CG-TOOLS
+.TH CG-RAINBOW 1 CG-TOOLS
 .SH NAME
-cg-icc - Apply ICC profiles to the monitors
+cg-rainbow - Adds a rainbow cycle effect to the monitors
 .SH SYNOPSIS
-.B cg-icc
+.B cg-rainbow
 .RB [ \-M
 .IR method ]
 .RB [ \-S
@@ -10,31 +10,33 @@ cg-icc - Apply ICC profiles to the monitors
 .RB [ \-c
 .IR crtc "]... ["\fB\-R\fP
 .IR rule ]
-.RB ( \-x
-|
 .RB [ \-p
 .IR priority ]
-.RB [ \-d ]
-.RI [ file ])
+.RB [ \-l
+.IR luminosity ]
+.RB [ \-s
+.IR rainbowhz ]
 .SH DESCRIPTION
-.B cg-icc
-applies the ICC profile
-.I file
-to the monitors. If
-.I file
-is not specified,
-.B cg-icc
-reads a default ICC profile table file and applies
-the appropriate profiles to each monitor, which as a
-profile, independently.
+.B cg-rainbow
+cycles between a the rainbow's colors and use the colours
+as the monitors' white colour.
 .P
-The file is a 2-column text file where empty lines and lines
-starting with a
-.RB ' # ',
-after any whitespace, are ignored. The
-first value is a monitor's EDID, and the second value is the
-ICC file for that monitor.
+.B cg-rainbow
+is a rewrite of
+.BR xrainbow (1)
+and
+.BR grainbow (1).
 .SH OPTIONS
+.TP
+.BR \-l " "\fIluminosity\fP
+Select the luminosity of the rainbow. A value of 0 means
+the rainbow is completely black, and a value of 1 means the
+the rainbow is fully saturated, but not oversaturated. The
+default luminosity is one third.
+.TP
+.BR \-s " "\fIrainbowhz\fP
+Select the number of of rainbow-cycles per second. The
+default frequency is one third.
 .TP
 .BR \-c " "\fIcrtc\fP
 Apply the filter to the CRTC with the monitor whose EDID is
@@ -46,9 +48,6 @@ If
 is
 .RB ' ? ',
 all available CRTC's are listed.
-.TP
-.B \-d
-Keep the process alive and remove the filter on death.
 .TP
 .BR \-M " "\fImethod\fP
 Adjustment method name or number. Recognised names include:
@@ -80,8 +79,8 @@ Set the priority of the filter. Filters with higher priority
 are applied before filters with lower priority. The value
 must be a signed 64-bit integer (between \-9223372036854775807
 and 9223372036854775807).
-.BR cg-icc 's
-default priority is 0.
+.BR cg-rainbow 's
+default priority is 1152921504606846976.
 
 If
 .I priority
@@ -111,18 +110,5 @@ Select the site to which to connect. For example
 .RB ' :0 ',
 for local display 0 when using
 .BR X .
-.TP
-.B \-x
-Remove the currently applied filter.
-.SH FILES
-.TP
-.B ~/.config/icctab
-The default ICC profile table file.
-.TP
-.B /etc/icctab
-The fallback ICC profile table file.
-.SH "SEE ALSO"
+.SH SEE ALSO
 .BR cg-tools (7)
-.SH BUGS
-Please report bugs to https://github.com/maandree/cg-tools/issues
-or to maandree@kth.se
