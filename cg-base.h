@@ -9,7 +9,7 @@
  * Value of `default_priority` that indicates
  * that there is no default priority
  */
-#define NO_DEFAULT_PRIORITY  INT64_MAX
+#define NO_DEFAULT_PRIORITY INT64_MAX
 
 
 
@@ -24,12 +24,12 @@
  * 4)  The type of the ramp stops
  */
 #define LIST_DEPTHS\
-  X(LIBCOOPGAMMA_UINT8,  u8,  UINT8_MAX,   uint8_t)\
-  X(LIBCOOPGAMMA_UINT16, u16, UINT16_MAX,  uint16_t)\
-  X(LIBCOOPGAMMA_UINT32, u32, UINT32_MAX,  uint32_t)\
-  X(LIBCOOPGAMMA_UINT64, u64, UINT64_MAX,  uint64_t)\
-  X(LIBCOOPGAMMA_FLOAT,  f,   ((float)1),  float)\
-  X(LIBCOOPGAMMA_DOUBLE, d,   ((double)1), double)
+	X(LIBCOOPGAMMA_UINT8,  u8,  UINT8_MAX,   uint8_t)\
+	X(LIBCOOPGAMMA_UINT16, u16, UINT16_MAX,  uint16_t)\
+	X(LIBCOOPGAMMA_UINT32, u32, UINT32_MAX,  uint32_t)\
+	X(LIBCOOPGAMMA_UINT64, u64, UINT64_MAX,  uint64_t)\
+	X(LIBCOOPGAMMA_FLOAT,  f,   ((float)1),  float)\
+	X(LIBCOOPGAMMA_DOUBLE, d,   ((double)1), double)
 
 
 
@@ -39,54 +39,54 @@
  */
 typedef struct filter_update
 {
-  /**
-   * The filter to update
-   * 
-   * `.filter.crtc`, `.filter.class`, and
-   * `.filter.priority` (unless `default_priority`
-   * is `NO_DEFAULT_PRIORITY`), `.filter.depth`
-   * are preconfigured, and `.filter.ramps`
-   * is preinitialised and preset to an
-   * identity ramp
-   */
-  libcoopgamma_filter_t filter;
-  
-  /**
-   * The index of the CRTC
-   */
-  size_t crtc;
-  
-  /**
-   * Has the update been synchronised?
-   */
-  int synced;
-  
-  /**
-   * Did the update fail?
-   */
-  int failed;
-  
-  /**
-   * Error description if `.failed` is true
-   */
-  libcoopgamma_error_t error;
-  
-  /**
-   * If zero, the ramps in `.filter` shall
-   * neither be modified nor freed
-   */
-  int master;
-  
-  /**
-   * 0-terminated list of elements in
-   * `.crtc_updates` which shares gamma
-   * ramps with this instance
-   * 
-   * This will only be set if `.master`
-   * is true
-   */
-  size_t* slaves;
-  
+	/**
+	 * The filter to update
+	 * 
+	 * `.filter.crtc`, `.filter.class`, and
+	 * `.filter.priority` (unless `default_priority`
+	 * is `NO_DEFAULT_PRIORITY`), `.filter.depth`
+	 * are preconfigured, and `.filter.ramps`
+	 * is preinitialised and preset to an
+	 * identity ramp
+	 */
+	libcoopgamma_filter_t filter;
+
+	/**
+	 * The index of the CRTC
+	 */
+	size_t crtc;
+
+	/**
+	 * Has the update been synchronised?
+	 */
+	int synced;
+
+	/**
+	 * Did the update fail?
+	 */
+	int failed;
+
+	/**
+	 * Error description if `.failed` is true
+	 */
+	libcoopgamma_error_t error;
+
+	/**
+	 * If zero, the ramps in `.filter` shall
+	 * neither be modified nor freed
+	 */
+	int master;
+
+	/**
+	 * 0-terminated list of elements in
+	 * `.crtc_updates` which shares gamma
+	 * ramps with this instance
+	 * 
+	 * This will only be set if `.master`
+	 * is true
+	 */
+	size_t *slaves;
+
 } filter_update_t;
 
 
@@ -94,7 +94,7 @@ typedef struct filter_update
 /**
  * The process's name
  */
-extern const char* argv0;
+extern const char *argv0;
 
 /**
  * The libcoopgamma context
@@ -104,18 +104,18 @@ extern libcoopgamma_context_t cg;
 /**
  * The names of the selected CRTC:s
  */
-extern char** crtcs;
+extern char **crtcs;
 
 /**
  * Gamma ramp updates for each CRTC
  */
-extern filter_update_t* crtc_updates;
+extern filter_update_t *crtc_updates;
 
 /**
  * CRTC and monitor information about
  * each selected CRTC and connect monitor
  */
-extern libcoopgamma_crtc_info_t* crtc_info;
+extern libcoopgamma_crtc_info_t *crtc_info;
 
 /**
  * The number of selected CRTC:s
@@ -142,7 +142,7 @@ extern char default_class[];
 /**
  * Class suffixes
  */
-extern const char* const* class_suffixes;
+extern const char *const *class_suffixes;
 
 
 
@@ -210,7 +210,7 @@ extern void usage(void);
 #if defined(__GNUC__)
 __attribute__((__nonnull__(1)))
 #endif
-extern int handle_opt(char* opt, char* arg);
+extern int handle_opt(char *opt, char *arg);
 
 /**
  * This function is called after the last
@@ -224,7 +224,7 @@ extern int handle_opt(char* opt, char* arg);
 #if defined(__GNUC__)
 __attribute__((__nonnull__(2)))
 #endif
-extern int handle_args(int argc, char* argv[], char* prio);
+extern int handle_args(int argc, char *argv[], char *prio);
 
 /**
  * The main function for the program-specific code

@@ -27,19 +27,19 @@ char default_class[] = PKGNAME "::cg-rainbow::standard";
 /**
  * Class suffixes
  */
-const char* const* class_suffixes = (const char* const[]){NULL};
+const char *const *class_suffixes = (const char *const[]){NULL};
 
 
 
 /**
  * -s: rainbow-frequency in Hz
  */
-static char* sflag = NULL;
+static char *sflag = NULL;
 
 /**
  * -l: base luminosity
  */
-static char* lflag = NULL;
+static char *lflag = NULL;
 
 /**
  * The rainbow-frequency multiplied by 3
@@ -56,13 +56,14 @@ double luminosity = (double)1 / 3;
 /**
  * Print usage information and exit
  */
-void usage(void)
+void
+usage(void)
 {
-  fprintf(stderr,
-	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] [-p priority]"
-	  " [-l luminosity] [-s rainbowhz]\n",
-	  argv0);
-  exit(1);
+	fprintf(stderr,
+	       "usage: %s [-M method] [-S site] [-c crtc]... [-R rule] [-p priority]"
+	       " [-l luminosity] [-s rainbowhz]\n",
+	       argv0);
+	exit(1);
 }
 
 
@@ -80,25 +81,26 @@ void usage(void)
  *               1 if `arg` was used,
  *               -1 on error
  */
-int handle_opt(char* opt, char* arg)
+int
+handle_opt(char *opt, char *arg)
 {
-  if (opt[0] == '-')
-    switch (opt[1])
-      {
-      case 'l':
-	if (lflag || !(lflag = arg))
-	  usage();
-	return 1;
-      case 's':
-	if (sflag || !(sflag = arg))
-	  usage();
-	return 1;
-      default:
-	usage();
-      }
-  else
-    usage();
-  return 0;
+	if (opt[0] == '-') {
+		switch (opt[1]) {
+		case 'l':
+			if (lflag || !(lflag = arg))
+				usage();
+			return 1;
+		case 's':
+			if (sflag || !(sflag = arg))
+				usage();
+			return 1;
+		default:
+			usage();
+		}
+	} else {
+		usage();
+	}
+	return 0;
 }
 
 
@@ -109,16 +111,17 @@ int handle_opt(char* opt, char* arg)
  * @param   str  The string
  * @return       Zero on success, -1 if the string is invalid
  */
-static int parse_double(double* restrict out, const char* restrict str)
+static int
+parse_double(double *restrict out, const char *restrict str)
 {
-  char* end;
-  errno = 0;
-  *out = strtod(str, &end);
-  if (errno || (*out < 0) || isinf(*out) || isnan(*out) || *end)
-    return -1;
-  if (!*str || !strchr("0123456789.", *str))
-    return -1;
-  return 0;
+	char *end;
+	errno = 0;
+	*out = strtod(str, &end);
+	if (errno || *out < 0 || isinf(*out) || isnan(*out) || *end)
+		return -1;
+	if (!*str || !strchr("0123456789.", *str))
+		return -1;
+	return 0;
 }
 
 
@@ -131,25 +134,24 @@ static int parse_double(double* restrict out, const char* restrict str)
  * @param   prio  The argument associated with the "-p" option
  * @return        Zero on success, -1 on error
  */
-int handle_args(int argc, char* argv[], char* prio)
+int
+handle_args(int argc, char *argv[], char *prio)
 {
-  int q = (lflag || sflag);
-  if ((q > 1) || argc)
-    usage();
-  if (sflag != NULL)
-    {
-      if (parse_double(&rainbows_per_third_second, sflag) < 0)
-	usage();
-      rainbows_per_third_second *= 3;
-    }
-  if (lflag != NULL)
-    {
-      if (parse_double(&luminosity, lflag) < 0)
-	usage();
-    }
-  return 0;
-  (void) argv;
-  (void) prio;
+	int q = (lflag || sflag);
+	if (q > 1 || argc)
+		usage();
+	if (sflag) {
+		if (parse_double(&rainbows_per_third_second, sflag) < 0)
+			usage();
+		rainbows_per_third_second *= 3;
+	}
+	if (lflag) {
+		if (parse_double(&luminosity, lflag) < 0)
+			usage();
+	}
+	return 0;
+	(void) argv;
+	(void) prio;
 }
 
 
@@ -161,20 +163,20 @@ int handle_args(int argc, char* argv[], char* prio)
  * @param  green   The green brightness
  * @param  blue    The blue brightness
  */
-static void fill_filter(libcoopgamma_filter_t* restrict filter, double red, double green, double blue)
+static void
+fill_filter(libcoopgamma_filter_t *restrict filter, double red, double green, double blue)
 {
-  switch (filter->depth)
-    {
+	switch (filter->depth) {
 #define X(CONST, MEMBER, MAX, TYPE)\
-    case CONST:\
-      libclut_start_over(&(filter->ramps.MEMBER), MAX, TYPE, 1, 1, 1);\
-      libclut_rgb_brightness(&(filter->ramps.MEMBER), MAX, TYPE, red, green, blue);\
-      break;
-LIST_DEPTHS
+	case CONST:\
+		libclut_start_over(&filter->ramps.MEMBER, MAX, TYPE, 1, 1, 1);\
+		libclut_rgb_brightness(&filter->ramps.MEMBER, MAX, TYPE, red, green, blue);\
+		break;
+	LIST_DEPTHS
 #undef X
-    default:
-      abort();
-    }
+	default:
+		abort();
+	}
 }
 
 
@@ -184,18 +186,19 @@ LIST_DEPTHS
  * @param   now  Output parameter for the current time (monotonic)
  * @return       Zero on success, -1 on error
  */
-static int double_time(double* restrict now)
+static int
+double_time(double *restrict now)
 {
 #ifndef CLOCK_MONOTONIC_RAW
 # define CLOCK_MONOTONIC_RAW  CLOCK_MONOTONIC
 #endif
-  struct timespec ts;
-  if (clock_gettime(CLOCK_MONOTONIC_RAW, &ts) < 0)
-    return -1;
-  *now  = (double)(ts.tv_nsec);
-  *now /= 1000000000L;
-  *now += (double)(ts.tv_sec);
-  return 0;
+	struct timespec ts;
+	if (clock_gettime(CLOCK_MONOTONIC_RAW, &ts) < 0)
+		return -1;
+	*now  = (double)(ts.tv_nsec);
+	*now /= 1000000000L;
+	*now += (double)(ts.tv_sec);
+	return 0;
 }
 
 
@@ -207,56 +210,58 @@ static int double_time(double* restrict now)
  *          -2: Error, `cg.error` set
  *          -3: Error, message already printed
  */
-int start(void)
+int
+start(void)
 {
-  int r;
-  size_t i, j;
-  double pal[3];
-  double t, starttime;
-  
-  for (i = 0; i < filters_n; i++)
-    crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
-  
-  if ((r = make_slaves()) < 0)
-    return r;
-  
-  if ((r = double_time(&starttime)) < 0)
-    return r;
-  
-  for (;;)
-    {
-      if ((r = double_time(&t)) < 0)
-	return r;
-      t -= starttime;
-      t *= rainbows_per_third_second;
-      pal[0] = pal[1] = pal[2] = luminosity;
-      pal[((long)t) % 3] += 1 - fmod(t, 1);
-      pal[((long)t + 1) % 3] += fmod(t, 1);
-      if (pal[0] > 1)  pal[0] = 1;
-      if (pal[1] > 1)  pal[1] = 1;
-      if (pal[2] > 1)  pal[2] = 1;
-      
-      for (i = 0, r = 1; i < filters_n; i++)
-	{
-	  if (!(crtc_updates[i].master) || !(crtc_info[crtc_updates[i].crtc].supported))
-	    continue;
-	  fill_filter(&(crtc_updates[i].filter), pal[0], pal[1], pal[2]);
-	  r = update_filter(i, 0);
-	  if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
-	    return r;
-	  if (crtc_updates[i].slaves != NULL)
-	    for (j = 0; crtc_updates[i].slaves[j] != 0; j++)
-	      {
-		r = update_filter(crtc_updates[i].slaves[j], 0);
-		if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
-		  return r;
-	      }
+	int r;
+	size_t i, j;
+	double pal[3];
+	double t, starttime;
+
+	for (i = 0; i < filters_n; i++)
+		crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
+
+	if ((r = make_slaves()) < 0)
+		return r;
+
+	if ((r = double_time(&starttime)) < 0)
+		return r;
+
+	for (;;) {
+		if ((r = double_time(&t)) < 0)
+			return r;
+		t -= starttime;
+		t *= rainbows_per_third_second;
+		pal[0] = pal[1] = pal[2] = luminosity;
+		pal[((long)t) % 3] += 1 - fmod(t, 1);
+		pal[((long)t + 1) % 3] += fmod(t, 1);
+		if (pal[0] > 1)
+			pal[0] = 1;
+		if (pal[1] > 1)
+			pal[1] = 1;
+		if (pal[2] > 1)
+			pal[2] = 1;
+
+		for (i = 0, r = 1; i < filters_n; i++) {
+			if (!crtc_updates[i].master || !crtc_info[crtc_updates[i].crtc].supported)
+				continue;
+			fill_filter(&crtc_updates[i].filter, pal[0], pal[1], pal[2]);
+			r = update_filter(i, 0);
+			if (r == -2 || (r == -1 && errno != EAGAIN))
+				return r;
+			if (crtc_updates[i].slaves) {
+				for (j = 0; crtc_updates[i].slaves[j]; j++) {
+					r = update_filter(crtc_updates[i].slaves[j], 0);
+					if (r == -2 || (r == -1 && errno != EAGAIN))
+						return r;
+				}
+			}
+		}
+
+		while (r != 1)
+			if ((r = synchronise(-1)) < 0)
+				return r;
+
+		sched_yield();
 	}
-      
-      while (r != 1)
-	if ((r = synchronise(-1)) < 0)
-	  return r;
-      
-      sched_yield();
-    }
 }

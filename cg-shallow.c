@@ -25,7 +25,7 @@ char default_class[] = PKGNAME "::cg-shallow::standard";
 /**
  * Class suffixes
  */
-const char* const* class_suffixes = (const char* const[]){NULL};
+const char *const *class_suffixes = (const char *const[]){NULL};
 
 
 
@@ -58,13 +58,14 @@ static size_t bres = 2;
 /**
  * Print usage information and exit
  */
-void usage(void)
+void
+usage(void)
 {
-  fprintf(stderr,
-	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule] "
-	  "(-x | [-p priority] [-d] [all | red green blue])\n",
-	  argv0);
-  exit(1);
+	fprintf(stderr,
+	        "usage: %s [-M method] [-S site] [-c crtc]... [-R rule] "
+	        "(-x | [-p priority] [-d] [all | red green blue])\n",
+	        argv0);
+	exit(1);
 }
 
 
@@ -82,28 +83,29 @@ void usage(void)
  *               1 if `arg` was used,
  *               -1 on error
  */
-int handle_opt(char* opt, char* arg)
+int
+handle_opt(char *opt, char *arg)
 {
-  if (opt[0] == '-')
-    switch (opt[1])
-      {
-      case 'd':
-	if (dflag || xflag)
-	  usage();
-	dflag = 1;
-	break;
-      case 'x':
-	if (xflag || dflag)
-	  usage();
-	xflag = 1;
-	break;
-      default:
-	usage();
-      }
-  else
-    usage();
-  return 0;
-  (void) arg;
+	if (opt[0] == '-') {
+		switch (opt[1]) {
+		case 'd':
+			if (dflag || xflag)
+				usage();
+			dflag = 1;
+			break;
+		case 'x':
+			if (xflag || dflag)
+				usage();
+			xflag = 1;
+			break;
+		default:
+			usage();
+		}
+	} else {
+		usage();
+	}
+	return 0;
+	(void) arg;
 }
 
 
@@ -114,16 +116,17 @@ int handle_opt(char* opt, char* arg)
  * @param   str  The string
  * @return       Zero on success, -1 if the string is invalid
  */
-static int parse_int(size_t* restrict out, const char* restrict str)
+static int
+parse_int(size_t *restrict out, const char *restrict str)
 {
-  char* end;
-  errno = 0;
-  if (!isdigit(*str))
-    return -1;
-  *out = strtoul(str, &end, 10);
-  if (errno || *end)
-    return -1;
-  return 0;
+	char *end;
+	errno = 0;
+	if (!isdigit(*str))
+		return -1;
+	*out = strtoul(str, &end, 10);
+	if (errno || *end)
+		return -1;
+	return 0;
 }
 
 
@@ -136,35 +139,34 @@ static int parse_int(size_t* restrict out, const char* restrict str)
  * @param   prio  The argument associated with the "-p" option
  * @return        Zero on success, -1 on error
  */
-int handle_args(int argc, char* argv[], char* prio)
+int
+handle_args(int argc, char *argv[], char *prio)
 {
-  char* red = NULL;
-  char* green = NULL;
-  char* blue = NULL;
-  int q = xflag + (dflag | (argc > 0));
-  if ((q > 1) || (xflag && (prio != NULL)))
-    usage();
-  if (argc == 1)
-    red = green = blue = argv[0];
-  else if (argc == 3)
-    {
-      red   = argv[0];
-      green = argv[1];
-      blue  = argv[2];
-    }
-  else if (argc && !xflag)
-    usage();
-  if (argc)
-    {
-      if (parse_int(&rres, red) < 0)
-        usage();
-      if (parse_int(&gres, blue) < 0)
-        usage();
-      if (parse_int(&bres, green) < 0)
-        usage();
-    }
-  return 0;
-  (void) argv;
+	char *red = NULL;
+	char *green = NULL;
+	char *blue = NULL;
+	int q = xflag + (dflag | (argc > 0));
+	if (q > 1 || (xflag && prio))
+		usage();
+	if (argc == 1) {
+		red = green = blue = argv[0];
+	} else if (argc == 3) {
+		red   = argv[0];
+		green = argv[1];
+		blue  = argv[2];
+	} else if (argc && !xflag) {
+		usage();
+	}
+	if (argc) {
+		if (parse_int(&rres, red) < 0)
+			usage();
+		if (parse_int(&gres, blue) < 0)
+			usage();
+		if (parse_int(&bres, green) < 0)
+			usage();
+	}
+	return 0;
+	(void) argv;
 }
 
 
@@ -173,19 +175,19 @@ int handle_args(int argc, char* argv[], char* prio)
  * 
  * @param  filter  The filter to fill
  */
-static void fill_filter(libcoopgamma_filter_t* restrict filter)
+static void
+fill_filter(libcoopgamma_filter_t *restrict filter)
 {
-  switch (filter->depth)
-    {
+	switch (filter->depth) {
 #define X(CONST, MEMBER, MAX, TYPE)\
-    case CONST:\
-	    libclut_lower_resolution(&(filter->ramps.MEMBER), MAX, TYPE, 0, rres, 0, gres, 0, bres);\
-      break;
-LIST_DEPTHS
+	case CONST:\
+		libclut_lower_resolution(&filter->ramps.MEMBER, MAX, TYPE, 0, rres, 0, gres, 0, bres);\
+		break;
+	LIST_DEPTHS
 #undef X
-    default:
-      abort();
-    }
+	default:
+		abort();
+	}
 }
 
 
@@ -197,66 +199,65 @@ LIST_DEPTHS
  *          -2: Error, `cg.error` set
  *          -3: Error, message already printed
  */
-int start(void)
+int
+start(void)
 {
-  int r;
-  size_t i, j;
-  
-  if (xflag)
-    for (i = 0; i < filters_n; i++)
-      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_REMOVE;
-  else if (dflag)
-    for (i = 0; i < filters_n; i++)
-      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
-  else
-    for (i = 0; i < filters_n; i++)
-      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
-  
-  if (!xflag)
-    if ((r = make_slaves()) < 0)
-      return r;
-  
-  for (i = 0, r = 1; i < filters_n; i++)
-    {
-      if (!(crtc_updates[i].master) || !(crtc_info[crtc_updates[i].crtc].supported))
-	continue;
-      if (!xflag)
-	fill_filter(&(crtc_updates[i].filter));
-      r = update_filter(i, 0);
-      if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
-	return r;
-      if (crtc_updates[i].slaves != NULL)
-	for (j = 0; crtc_updates[i].slaves[j] != 0; j++)
-	  {
-	    r = update_filter(crtc_updates[i].slaves[j], 0);
-	    if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
-	      return r;
-	  }
-    }
-  
-  while (r != 1)
-    if ((r = synchronise(-1)) < 0)
-      return r;
-  
-  if (!dflag)
-    return 0;
-  
-  if (libcoopgamma_set_nonblocking(&cg, 0) < 0)
-    return -1;
-  for (;;)
-    if (libcoopgamma_synchronise(&cg, NULL, 0, &j) < 0)
-      switch (errno)
-	{
-	case 0:
-	  break;
-	case ENOTRECOVERABLE:
-	  goto enotrecoverable;
-	default:
-	  return -1;
+	int r;
+	size_t i, j;
+
+	if (xflag)
+		for (i = 0; i < filters_n; i++)
+			crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_REMOVE;
+	else if (dflag)
+		for (i = 0; i < filters_n; i++)
+			crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
+	else
+		for (i = 0; i < filters_n; i++)
+			crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
+
+	if (!xflag && (r = make_slaves()) < 0)
+		return r;
+
+	for (i = 0, r = 1; i < filters_n; i++) {
+		if (!crtc_updates[i].master || !crtc_info[crtc_updates[i].crtc].supported)
+			continue;
+		if (!xflag)
+			fill_filter(&crtc_updates[i].filter);
+		r = update_filter(i, 0);
+		if (r == -2 || (r == -1 && errno != EAGAIN))
+			return r;
+		if (crtc_updates[i].slaves) {
+			for (j = 0; crtc_updates[i].slaves[j]; j++) {
+				r = update_filter(crtc_updates[i].slaves[j], 0);
+				if (r == -2 || (r == -1 && errno != EAGAIN))
+					return r;
+			}
+		}
 	}
-  
- enotrecoverable:
-  for (;;)
-    if (pause() < 0)
-      return -1;
+
+	while (r != 1)
+		if ((r = synchronise(-1)) < 0)
+			return r;
+
+	if (!dflag)
+		return 0;
+
+	if (libcoopgamma_set_nonblocking(&cg, 0) < 0)
+		return -1;
+	for (;;) {
+		if (libcoopgamma_synchronise(&cg, NULL, 0, &j) < 0) {
+			switch (errno) {
+			case 0:
+				break;
+			case ENOTRECOVERABLE:
+				goto enotrecoverable;
+			default:
+				return -1;
+			}
+		}
+	}
+
+enotrecoverable:
+	pause();
+	return -1;
 }

@@ -24,7 +24,7 @@ char default_class[] = PKGNAME "::cg-linear::standard";
 /**
  * Class suffixes
  */
-const char* const* class_suffixes = (const char* const[]){":start", ":stop", NULL};
+const char *const *class_suffixes = (const char *const[]){":start", ":stop", NULL};
 
 
 
@@ -68,13 +68,14 @@ static int64_t stop_priority;
 /**
  * Print usage information and exit
  */
-void usage(void)
+void
+usage(void)
 {
-  fprintf(stderr,
-	  "Usage: %s [-M method] [-S site] [-c crtc]... [-R rule-base] "
-	  "(-x | -p start-priority:stop-priority [-d] [+rgb])\n",
-	  argv0);
-  exit(1);
+	fprintf(stderr,
+	        "usage: %s [-M method] [-S site] [-c crtc]... [-R rule-base] "
+	        "(-x | -p start-priority:stop-priority [-d] [+rgb])\n",
+	        argv0);
+	exit(1);
 }
 
 
@@ -92,47 +93,47 @@ void usage(void)
  *               1 if `arg` was used,
  *               -1 on error
  */
-int handle_opt(char* opt, char* arg)
+int
+handle_opt(char *opt, char *arg)
 {
-  if (opt[0] == '-')
-    switch (opt[1])
-      {
-      case 'd':
-	if (dflag || xflag)
-	  usage();
-	dflag = 1;
-	break;
-      case 'x':
-	if (xflag || dflag)
-	  usage();
-	xflag = 1;
-	break;
-      default:
-	usage();
-      }
-  else
-    switch (opt[1])
-      {
-      case 'r':
-	if (rplus)
-	  usage();
-	rplus = 1;
-	break;
-      case 'g':
-	if (gplus)
-	  usage();
-	gplus = 1;
-	break;
-      case 'b':
-	if (bplus)
-	  usage();
-	bplus = 1;
-	break;
-      default:
-	usage();
-      }
-  return 0;
-  (void) arg;
+	if (opt[0] == '-') {
+		switch (opt[1]) {
+		case 'd':
+			if (dflag || xflag)
+				usage();
+			dflag = 1;
+			break;
+		case 'x':
+			if (xflag || dflag)
+				usage();
+			xflag = 1;
+			break;
+		default:
+			usage();
+		}
+	} else {
+		switch (opt[1]) {
+		case 'r':
+			if (rplus)
+				usage();
+			rplus = 1;
+			break;
+		case 'g':
+			if (gplus)
+				usage();
+			gplus = 1;
+			break;
+		case 'b':
+			if (bplus)
+				usage();
+			bplus = 1;
+			break;
+		default:
+			usage();
+		}
+	}
+	return 0;
+	(void) arg;
 }
 
 
@@ -145,31 +146,31 @@ int handle_opt(char* opt, char* arg)
  * @param   prio  The argument associated with the "-p" option
  * @return        Zero on success, -1 on error
  */
-int handle_args(int argc, char* argv[], char* prio)
+int
+handle_args(int argc, char *argv[], char *prio)
 {
-  int q = xflag + (dflag | rplus | gplus | bplus);
-  char *p, *end;
-  if (argc || (q > 1) || (xflag && (prio != NULL)))
-    usage();
-  if (!xflag && (prio == NULL))
-    usage();
-  if (prio != NULL)
-    {
-      p = strchr(prio, ':');
-      if (!p)
-	usage();
-      *p++ = '\0';
-      errno = 0;
-      start_priority = (size_t)strtoul(prio, &end, 10);
-      if (errno || *end || !*prio)
-	usage();
-      stop_priority = (size_t)strtoul(p, &end, 10);
-      if (errno || *end || !*prio)
-	usage();
-      p[-1] = ':';
-    }
-  return 0;
-  (void) argv;
+	int q = xflag + (dflag | rplus | gplus | bplus);
+	char *p, *end;
+	if (argc || q > 1 || (xflag && prio))
+		usage();
+	if (!xflag && !prio)
+		usage();
+	if (prio) {
+		p = strchr(prio, ':');
+		if (!p)
+			usage();
+		*p++ = '\0';
+		errno = 0;
+		start_priority = (int64_t)strtoll(prio, &end, 10);
+		if (errno || *end || !*prio)
+			usage();
+		stop_priority = (int64_t)strtoll(p, &end, 10);
+		if (errno || *end || !*prio)
+			usage();
+		p[-1] = ':';
+	}
+	return 0;
+	(void) argv;
 }
 
 
@@ -179,22 +180,22 @@ int handle_args(int argc, char* argv[], char* prio)
  * @param  filter    The filter to fill
  * @param  is_start  If the fitler is a linearisation filter
  */
-static void fill_filter(libcoopgamma_filter_t* restrict filter, int is_start)
+static void
+fill_filter(libcoopgamma_filter_t *restrict filter, int is_start)
 {
-  switch (filter->depth)
-    {
+	switch (filter->depth) {
 #define X(CONST, MEMBER, MAX, TYPE)\
-    case CONST:\
-      if (is_start)\
-        libclut_linearise(&(filter->ramps.MEMBER), MAX, TYPE, !rplus, !gplus, !bplus);\
-      else\
-        libclut_standardise(&(filter->ramps.MEMBER), MAX, TYPE, !rplus, !gplus, !bplus);\
-      break;
-LIST_DEPTHS
+		case CONST:\
+			if (is_start)\
+				libclut_linearise(&filter->ramps.MEMBER, MAX, TYPE, !rplus, !gplus, !bplus);\
+			else\
+				libclut_standardise(&filter->ramps.MEMBER, MAX, TYPE, !rplus, !gplus, !bplus);\
+			break;
+		LIST_DEPTHS
 #undef X
-    default:
-      abort();
-    }
+	default:
+		abort();
+	}
 }
 
 
@@ -206,58 +207,58 @@ LIST_DEPTHS
  *          -2: Error, `cg.error` set
  *          -3: Error, message already printed
  */
-int start(void)
+int
+start(void)
 {
-  int r;
-  size_t i, j;
-  
-  if (xflag)
-    for (i = 0; i < filters_n; i++)
-      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_REMOVE;
-  else if (dflag)
-    for (i = 0; i < filters_n; i++)
-      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
-  else
-    for (i = 0; i < filters_n; i++)
-      crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
-  
-  for (i = 0, r = 1; i < filters_n; i++)
-    {
-      if (!(crtc_info[crtc_updates[i].crtc].supported))
-	continue;
-      if (!xflag) {
-	int is_start = strchr(crtc_updates[i].filter.class, '\0')[-1] == 't';
-	fill_filter(&(crtc_updates[i].filter), is_start);
-	crtc_updates[i].filter.priority = is_start ? start_priority : stop_priority;
-      }
-      r = update_filter(i, 0);
-      if ((r == -2) || ((r == -1) && (errno != EAGAIN)))
-	return r;
-    }
-  
-  while (r != 1)
-    if ((r = synchronise(-1)) < 0)
-      return r;
-  
-  if (!dflag)
-    return 0;
-  
-  if (libcoopgamma_set_nonblocking(&cg, 0) < 0)
-    return -1;
-  for (;;)
-    if (libcoopgamma_synchronise(&cg, NULL, 0, &j) < 0)
-      switch (errno)
-	{
-	case 0:
-	  break;
-	case ENOTRECOVERABLE:
-	  goto enotrecoverable;
-	default:
-	  return -1;
+	int r, is_start;
+	size_t i, j;
+
+	if (xflag)
+		for (i = 0; i < filters_n; i++)
+			crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_REMOVE;
+	else if (dflag)
+		for (i = 0; i < filters_n; i++)
+			crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_DEATH;
+	else
+		for (i = 0; i < filters_n; i++)
+			crtc_updates[i].filter.lifespan = LIBCOOPGAMMA_UNTIL_REMOVAL;
+
+	for (i = 0, r = 1; i < filters_n; i++) {
+		if (!crtc_info[crtc_updates[i].crtc].supported)
+			continue;
+		if (!xflag) {
+			is_start = strchr(crtc_updates[i].filter.class, '\0')[-1] == 't';
+			fill_filter(&crtc_updates[i].filter, is_start);
+			crtc_updates[i].filter.priority = is_start ? start_priority : stop_priority;
+		}
+		r = update_filter(i, 0);
+		if (r == -2 || (r == -1 && errno != EAGAIN))
+			return r;
 	}
-  
- enotrecoverable:
-  for (;;)
-    if (pause() < 0)
-      return -1;
+
+	while (r != 1)
+		if ((r = synchronise(-1)) < 0)
+			return r;
+
+	if (!dflag)
+		return 0;
+
+	if (libcoopgamma_set_nonblocking(&cg, 0) < 0)
+		return -1;
+	for (;;) {
+		if (libcoopgamma_synchronise(&cg, NULL, 0, &j) < 0) {
+			switch (errno) {
+			case 0:
+				break;
+			case ENOTRECOVERABLE:
+				goto enotrecoverable;
+			default:
+				return -1;
+			}
+		}
+	}
+
+enotrecoverable:
+	pause();
+	return -1;
 }
