@@ -489,7 +489,7 @@ parse_icc(const char *restrict content, size_t n, libcoopgamma_ramps_t *ramps, l
 		ptr = tag_offset;
 
 		if (tag_name == MLUT_TAG) {
-			/* The profile is encododed as an dual-byte precision lookup table */
+			/* The profile is encoded as an dual-byte precision lookup table */
 
 			/* Initialise ramps */
 			*depth = LIBCOOPGAMMA_UINT16;
