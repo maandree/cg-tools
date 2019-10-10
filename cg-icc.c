@@ -14,8 +14,9 @@
 
 
 
-/* Note, that EDID:s are 256 hexadecimals long, and
- * a filename can only be 255 characters long. */
+/* Note, that EDID:s are at least 256 hexadecimals long,
+ * sometimes 512 hexadecimals long, and a filename can
+ * often only be 255 characters long. */
 
 
 
@@ -426,7 +427,8 @@ icc_uint8(const char *restrict content)
  * @param   width    The number of bytes with which the value is encoded
  * @return           The value, decoded
  */
-static double icc_double(const char *restrict content, size_t width)
+static double
+icc_double(const char *restrict content, size_t width)
 {
 	double ret = 0;
 	size_t i;
@@ -451,7 +453,8 @@ static double icc_double(const char *restrict content, size_t width)
  * @return           Zero on success, -1 on error, -2 if no usable data is
  *                   available in the profile.
  */
-static int parse_icc(const char *restrict content, size_t n, libcoopgamma_ramps_t *ramps, libcoopgamma_depth_t *depth)
+static int
+parse_icc(const char *restrict content, size_t n, libcoopgamma_ramps_t *ramps, libcoopgamma_depth_t *depth)
 {
 	uint32_t tag_name, tag_offset, tag_size, gamma_type;
 	size_t n_channels, n_entries, entry_size;
