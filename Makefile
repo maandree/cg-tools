@@ -67,4 +67,4 @@ clean:
 .SUFFIXES:
 .SUFFIXES: .c .o .out
 
-.PHONY: all install uninstall clean install
+.PHONY: all install uninstall clean
