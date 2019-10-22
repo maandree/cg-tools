@@ -1,0 +1,5 @@
+cg-negative and cg-darkroom do not work properly on all machines.
+In particular this seems to be a problem on machines where the
+number of gamma stops in X (not DRM even though this problem also
+occurs when using DRM) not 256. This is a kernel/graphics driver
+issue.
