@@ -32,8 +32,8 @@ MAN1 = $(BIN:=.1)
 MAN7 = cg-tools.7
 
 all: $(XBIN) $(OUT)
-$(OBJ): $(@:.o=.c) $(HDR)
-$(OUT): $(@:.out=.o) cg-base.o
+$(OBJ): $(HDR)
+$(OUT): cg-base.o
 
 .c.o:
 	$(CC) -c -o $@ $< $(CPPFLAGS) $(CFLAGS)

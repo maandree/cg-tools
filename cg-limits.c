@@ -362,13 +362,13 @@ parse_conf_file(const char *restrict pathname, char ***restrict names,
 		*b++ = '\0';
 
 		q = strpbrk(r, " \t");
-		if (!q)
+		if (q)
 			*q = '\0';
 		q = strpbrk(g, " \t");
-		if (!q)
+		if (q)
 			*q = '\0';
 		q = strpbrk(b, " \t");
-		if (!q)
+		if (q)
 			*q = '\0';
 
 		q = strchr(p, '\0');
