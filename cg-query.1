@@ -11,6 +11,8 @@ cg-query - List output filters applied to a monitor
 .IR high ]
 .RB [ \-l
 .IR low ]
+.RB [ \-f
+.IR class ]
 .B \-c
 .I crtc
 .SH DESCRIPTION
@@ -27,6 +29,16 @@ Do not list filter with higher priority than
 .BR \-l " "\fIlow\fP
 Do not list filter with lower priority than
 .IR low .
+.TP
+.BR \-f " "\fIclass\fP
+Print the gamma ramps of the filter with the specified
+.I class
+on the selected CRTC. If
+.I class
+is an asterisk
+.RB ( * ),
+all filters within the specified priority range are
+coalesced and printed as one filter.
 .TP
 .BR \-c " "\fIcrtc\fP
 Apply the filter to the CRTC with the monitor whose EDID is
