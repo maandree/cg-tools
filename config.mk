@@ -3,8 +3,8 @@ MANPREFIX = $(PREFIX)/share/man
 
 PKGNAME = cg-tools
 
-CC = cc
+CC = c99
 
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -D'PKGNAME="$(PKGNAME)"'
-CFLAGS   = -std=c99 -Wall -O2
-LDFLAGS  = -lcoopgamma -lm -s
+CFLAGS   = -O2
+LDFLAGS  = -lcoopgamma -lm
