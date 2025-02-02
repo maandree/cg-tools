@@ -824,11 +824,11 @@ start(void)
 		uniramps.u8.red_size = uniramps.u8.green_size = uniramps.u8.blue_size = 1;
 		for (i = 0; i < crtcs_n; i++) {
 			if (uniramps.u8.red_size   < crtc_updates[i].filter.ramps.u8.red_size)
-				uniramps.  u8.red_size   = crtc_updates[i].filter.ramps.u8.red_size;
+				uniramps.u8.red_size   = crtc_updates[i].filter.ramps.u8.red_size;
 			if (uniramps.u8.green_size < crtc_updates[i].filter.ramps.u8.green_size)
-				uniramps.  u8.green_size = crtc_updates[i].filter.ramps.u8.green_size;
+				uniramps.u8.green_size = crtc_updates[i].filter.ramps.u8.green_size;
 			if (uniramps.u8.blue_size  < crtc_updates[i].filter.ramps.u8.blue_size)
-				uniramps.  u8.blue_size  = crtc_updates[i].filter.ramps.u8.blue_size;
+				uniramps.u8.blue_size  = crtc_updates[i].filter.ramps.u8.blue_size;
 		}
 		switch (load_icc(icc_pathname, &uniramps, &unidepth)) {
 		case 0:
